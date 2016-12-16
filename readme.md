@@ -1,0 +1,1 @@
+# Joomla Automated Testing Platform
