@@ -1,0 +1,25 @@
+{
+  "name"       : "joomla-projects/joomla-testing",
+  "description": "Joomla automated testing scripts with container capabilities",
+  "keywords"   : ["robo", "task", "qa", "tests", "docker", "containers"],
+  "require"    : {
+    "php"      : ">=5.4.0"
+  },
+  "license"    : "GPL-2.0+",
+  "authors"    : [
+    {
+      "name"   : "Tito Alvarez",
+      "email"  : "tito.alvarez@community.joomla.org"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Joomla\\Testing\\": "src/"
+    }
+  },
+  "require-dev": {
+    "joomla-projects/joomla-testing-robo": "~1",
+    "consolidation/robo": "~1",
+    "symfony/process": "~3"
+  }
+}
