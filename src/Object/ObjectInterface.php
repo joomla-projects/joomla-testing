@@ -10,11 +10,11 @@
 namespace Joomla\Testing\Object;
 
 /**
- * Abstract object class
+ * Object interface
  *
  * @since  1.0.0
  */
-abstract class Object
+interface ObjectInterface
 {
 	/**
 	 * Attribute getter
@@ -25,15 +25,7 @@ abstract class Object
 	 *
 	 * @since   1.0.0
 	 */
-	public function get($attribute)
-	{
-		if (property_exists($this, $attribute))
-		{
-			return $this->$attribute;
-		}
-
-		return false;
-	}
+	public function get($attribute);
 
 	/**
 	 * Attribute setter
@@ -45,13 +37,5 @@ abstract class Object
 	 *
 	 * @since   1.0.0
 	 */
-	public function set($attribute, $value)
-	{
-		if (property_exists($this, $attribute))
-		{
-			$this->$attribute = $value;
-		}
-
-		return false;
-	}
+	public function set($attribute, $value);
 }

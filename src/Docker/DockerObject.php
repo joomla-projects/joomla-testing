@@ -9,19 +9,20 @@
 
 namespace Joomla\Testing\Docker;
 
-use Joomla\Testing\Object\Object;
+use Joomla\Testing\Object\GenericObject;
 
 /**
  * Abstract Docker object class
  *
- * @since  1.0.0
+ * @since 1.0.0
  */
-abstract class DockerObject extends Object
+abstract class DockerObject extends GenericObject
 {
 	/**
-	 * DockerObject constructor.  Required to ensure that Docker exists before using anything related to it
+	 * DockerObject constructor.
+	 * Required to ensure that Docker exists before using anything related to it
 	 *
-	 * @todo:  Verify that docker actually is installed and functional
+	 * @todo: Verify that docker actually is installed and functional
 	 */
 	public function __construct()
 	{
