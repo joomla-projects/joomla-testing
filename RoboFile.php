@@ -27,16 +27,18 @@ class RoboFile extends \Robo\Tasks
 	use Joomla\Testing\Robo\Tasks\loadTasks;
 
 	/**
-	 * It does something
+	 * Runs base servers
 	 *
 	 * @return  bool
 	 */
-	public function doSomething()
+	public function runServers()
 	{
 		$tmpDir = __DIR__ . '/.tmp';
 
-		$this->taskDeleteDir($tmpDir);
-		$this->_mkdir($tmpDir);
+		if (!file_exists($tmpDir))
+		{
+			$this->_mkdir($tmpDir);
+		}
 
 		// CMS cloning and setup in the main coordinator
 		$this->taskCMSSetup()
@@ -74,8 +76,31 @@ class RoboFile extends \Robo\Tasks
 			]
 		);
 		$dockerPHP->run();
+	}
+
+	/**
+	 * Stops base servers
+	 *
+	 * @return  bool
+	 */
+	public function stopServers()
+	{
+		$tmpDir = __DIR__ . '/.tmp';
+
+		$dockerDB = new MySQLContainer;
+		$dockerDB->set('name', 'db');
+		$dockerDB->stop();
+		$dockerDB->remove();
+
+		$dockerPHP = new PHPContainer;
+		$dockerPHP->set('name', 'php');
+		$dockerPHP->stop();
+		$dockerPHP->remove();
 
 		// Cleans up the network
+		$dockerNetwork = new Network('joomla');
 		$dockerNetwork->remove();
+
+		$this->taskDeleteDir($tmpDir . '/joomla')->run();
 	}
 }
