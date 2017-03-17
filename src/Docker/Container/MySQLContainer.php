@@ -12,7 +12,7 @@ namespace Joomla\Testing\Docker\Container;
 /**
  * MySQL Container
  *
- * @since  1.0.0
+ * @since 1.0.0
  */
 class MySQLContainer extends GenericContainer
 {
@@ -21,7 +21,7 @@ class MySQLContainer extends GenericContainer
 	 *
 	 * @var   string
 	 *
-	 * @since  1.0.0
+	 * @since 1.0.0
 	 */
 	protected $imageName = 'mysql';
 }

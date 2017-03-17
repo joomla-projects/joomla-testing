@@ -15,7 +15,7 @@ use Joomla\Testing\Util\Command;
 /**
  * Docker Network class
  *
- * @since  1.0.0
+ * @since 1.0.0
  */
 class Network extends DockerObject
 {
@@ -24,7 +24,7 @@ class Network extends DockerObject
 	 *
 	 * @var   string
 	 *
-	 * @since  1.0.0
+	 * @since 1.0.0
 	 */
 	protected $name = '';
 
@@ -33,7 +33,7 @@ class Network extends DockerObject
 	 *
 	 * @param   string  $name  Optional name of the network.  Otherwise it's randomized
 	 *
-	 * @since  1.0.0
+	 * @since 1.0.0
 	 */
 	public function __construct($name = '')
 	{
@@ -48,7 +48,7 @@ class Network extends DockerObject
 	/**
 	 * Assigns a randomized network name
 	 *
-	 * @return  string
+	 * @return  void
 	 *
 	 * @since   1.0.0
 	 */
@@ -68,7 +68,7 @@ class Network extends DockerObject
 	/**
 	 * Creates the Docker newtork
 	 *
-	 * @return  bool
+	 * @return  boolean
 	 *
 	 * @since   1.0.0
 	 */
@@ -85,7 +85,7 @@ class Network extends DockerObject
 	/**
 	 * Removes the Docker newtork
 	 *
-	 * @return  bool
+	 * @return  boolean
 	 *
 	 * @since   1.0.0
 	 */

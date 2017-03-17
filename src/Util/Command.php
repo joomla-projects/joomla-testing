@@ -14,7 +14,7 @@ use Symfony\Component\Process\Process;
 /**
  * Utility to execute command-related tasks
  *
- * @since  1.0.0
+ * @since 1.0.0
  */
 abstract class Command
 {
@@ -22,14 +22,15 @@ abstract class Command
 	 * Executes a command and returns its output
 	 *
 	 * @param   string  $command  OS command to execute
+	 * @param   int     $timeout  Timeout for the command to execute
 	 *
-	 * @return  bool
+	 * @return boolean
 	 *
-	 * @since   1.0.0
+	 * @since 1.0.0
 	 */
-	public static function execute($command)
+	public static function execute($command, $timeout = 600)
 	{
-		$process = new Process($command);
+		$process = new Process($command, null, null, null, $timeout);
 		$process->run();
 
 		return $process->isSuccessful();

@@ -12,14 +12,14 @@ namespace Joomla\Testing\Docker\Container;
 /**
  * Interfaces of every Container
  *
- * @since  1.0.0
+ * @since 1.0.0
  */
 interface ContainerInterface
 {
 	/**
 	 * Builds the container
 	 *
-	 * @return  bool
+	 * @return  boolean
 	 *
 	 * @since   1.0.0
 	 */
@@ -28,7 +28,7 @@ interface ContainerInterface
 	/**
 	 * Runs the container
 	 *
-	 * @return  bool
+	 * @return  boolean
 	 *
 	 * @since   1.0.0
 	 */
@@ -37,7 +37,7 @@ interface ContainerInterface
 	/**
 	 * Stops the container
 	 *
-	 * @return  bool
+	 * @return  boolean
 	 *
 	 * @since   1.0.0
 	 */
@@ -46,7 +46,7 @@ interface ContainerInterface
 	/**
 	 * Removes the container
 	 *
-	 * @return  bool
+	 * @return  boolean
 	 *
 	 * @since   1.0.0
 	 */

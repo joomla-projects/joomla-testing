@@ -12,7 +12,7 @@ namespace Joomla\Testing\Docker\Container;
 /**
  * PHP Container
  *
- * @since  1.0.0
+ * @since 1.0.0
  */
 class PHPContainer extends GenericContainer
 {
@@ -21,7 +21,7 @@ class PHPContainer extends GenericContainer
 	 *
 	 * @var   string
 	 *
-	 * @since  1.0.0
+	 * @since 1.0.0
 	 */
 	protected $imageName = 'php';
 }

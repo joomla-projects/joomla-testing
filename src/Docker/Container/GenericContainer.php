@@ -16,81 +16,90 @@ use Joomla\Testing\Util\Command;
 /**
  * Generic Container Entity
  *
- * @since  1.0.0
+ * @since 1.0.0
  */
 abstract class GenericContainer extends DockerObject implements ContainerInterface
 {
 	/**
 	 * Image name
 	 *
-	 * @var   string
+	 * @var string
 	 *
-	 * @since  1.0.0
+	 * @since 1.0.0
 	 */
 	protected $imageName = '';
 
 	/**
 	 * Image tag
 	 *
-	 * @var   string
+	 * @var string
 	 *
-	 * @since  1.0.0
+	 * @since 1.0.0
 	 */
 	protected $imageTag = 'latest';
 
 	/**
 	 * Attached Docker Network
 	 *
-	 * @var    Network
+	 * @var Network
 	 *
-	 * @since  1.0.0
+	 * @since 1.0.0
 	 */
 	protected $network = null;
 
 	/**
 	 * Folders to attach as volumes, keys are volume names
 	 *
-	 * @var    array
+	 * @var array
 	 *
-	 * @since  1.0.0
+	 * @since 1.0.0
 	 */
-	protected $volumes = [];
+	protected $volumes = array();
 
 	/**
 	 * Ports to expose in the public network
 	 *
-	 * @var    array
+	 * @var array
 	 *
-	 * @since  1.0.0
+	 * @since 1.0.0
 	 */
-	protected $ports = [];
+	protected $ports = array();
 
 	/**
 	 * Container name
 	 *
-	 * @var    string
+	 * @var string
 	 *
-	 * @since  1.0.0
+	 * @since 1.0.0
 	 */
 	protected $name = '';
 
 	/**
 	 * Extra parameters of the container execution
 	 *
-	 * @var   array
+	 * @var array
 	 *
-	 * @since  1.0.0
+	 * @since 1.0.0
 	 */
-	protected $params = [];
+	protected $params = array();
+
+	/**
+	 * Run in daemon mode
+	 *
+	 * @var   boolean
+	 *
+	 * @since 1.0.0
+	 */
+	protected $daemon = true;
 
 	/**
 	 * Builds the container
 	 *
-	 * @return  bool
+	 * @return boolean
 	 *
-	 * @since   1.0.0
+	 * @since 1.0.0
 	 *
-	 * @todo    Develop
+	 * @todo Develop
 	 */
 	public function build()
 	{
@@ -98,21 +107,42 @@ abstract class GenericContainer extends DockerObject implements ContainerInterfa
 	}
 
 	/**
-	 * Runs the container
+	 * Pulls the image from Docker Hub
 	 *
-	 * @return  bool
+	 * @return boolean
 	 *
-	 * @since   1.0.0
+	 * @since 1.0.0
 	 */
-	public function run()
+	public function pull()
 	{
-		if (empty($this->imageName)
-			|| empty($this->name))
+		if (empty($this->imageName))
 		{
 			return false;
 		}
 
-		$command = 'docker run -itd';
+		$command = 'docker pull ' . $this->imageName;
+		$command .= (!empty($this->imageTag) ? ':' . $this->imageTag : '');
+
+		return Command::execute($command);
+	}
+
+	/**
+	 * Runs the container
+	 *
+	 * @return boolean
+	 *
+	 * @since 1.0.0
+	 */
+	public function run()
+	{
+		if (empty($this->imageName)
+			|| empty($this->name)
+		)
+		{
+			return false;
+		}
+
+		$command = 'docker run -it' . ($this->daemon ? 'd' : '');
 		$command .= ' --name ' . $this->name;
 
 		if (!is_null($this->network))
@@ -152,7 +182,7 @@ abstract class GenericContainer extends DockerObject implements ContainerInterfa
 	/**
 	 * Stops the container
 	 *
-	 * @return  bool
+	 * @return  boolean
 	 *
 	 * @since   1.0.0
 	 */
@@ -171,7 +201,7 @@ abstract class GenericContainer extends DockerObject implements ContainerInterfa
 	/**
 	 * Removes the container
 	 *
-	 * @return  bool
+	 * @return  boolean
 	 *
 	 * @since   1.0.0
 	 */

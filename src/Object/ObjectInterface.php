@@ -12,18 +12,18 @@ namespace Joomla\Testing\Object;
 /**
  * Object interface
  *
- * @since  1.0.0
+ * @since 1.0.0
  */
 interface ObjectInterface
 {
 	/**
 	 * Attribute getter
 	 *
-	 * @param   string  $attribute  Attribute to get
+	 * @param   string  $attribute Attribute to get
 	 *
 	 * @return  mixed
 	 *
-	 * @since   1.0.0
+	 * @since  1.0.0
 	 */
 	public function get($attribute);
 
@@ -33,9 +33,9 @@ interface ObjectInterface
 	 * @param   string  $attribute  Name of the attribute to set
 	 * @param   mixed   $value      Value of the attribute
 	 *
-	 * @return  bool
+	 * @return  boolean
 	 *
-	 * @since   1.0.0
+	 * @since 1.0.0
 	 */
 	public function set($attribute, $value);
 }

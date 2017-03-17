@@ -12,7 +12,7 @@ namespace Joomla\Testing\Docker\Container;
 /**
  * MySQL Container
  *
- * @since  1.0.0
+ * @since 1.0.0
  */
 class TestContainer extends GenericContainer
 {
@@ -21,7 +21,16 @@ class TestContainer extends GenericContainer
 	 *
 	 * @var   string
 	 *
-	 * @since  1.0.0
+	 * @since 1.0.0
 	 */
-	protected $imageName = 'joomla-testing-client';
+	protected $imageName = 'joomlaprojects/joomla-testing-client';
+
+	/**
+	 * Image tag
+	 *
+	 * @var string
+	 *
+	 * @since 1.0.0
+	 */
+	protected $imageTag = '2.53.1';
 }

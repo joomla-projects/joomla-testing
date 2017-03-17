@@ -12,7 +12,7 @@ namespace Joomla\Testing\Object;
 /**
  * Abstract object class
  *
- * @since  1.0.0
+ * @since 1.0.0
  */
 abstract class GenericObject implements ObjectInterface
 {
@@ -41,9 +41,9 @@ abstract class GenericObject implements ObjectInterface
 	 * @param   string  $attribute  Name of the attribute to set
 	 * @param   mixed   $value      Value of the attribute
 	 *
-	 * @return  bool
+	 * @return  boolean
 	 *
-	 * @since   1.0.0
+	 * @since 1.0.0
 	 */
 	public function set($attribute, $value)
 	{
@@ -61,9 +61,9 @@ abstract class GenericObject implements ObjectInterface
 	 * @param   string  $name       Function name
 	 * @param   string  $arguments  Function arguments
 	 *
-	 * @return  mixed
+	 * @return mixed
 	 *
-	 * @since   1.0.0
+	 * @since 1.0.0
 	 */
 	public function __call($name, $arguments)
 	{
