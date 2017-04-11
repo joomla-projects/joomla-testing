@@ -23,7 +23,7 @@ class TestContainer extends GenericContainer
 	 *
 	 * @since 1.0.0
 	 */
-	protected $imageName = 'joomlaprojects/joomla-testing-client';
+	protected $imageName = 'joomlaprojects/joomla-testing-client-firefox';
 
 	/**
 	 * Image tag

@@ -172,7 +172,7 @@ class RoboFile extends \Robo\Tasks
 		$dockerTesting->set('daemon', false);
 		$dockerTesting->set(
 			'ports', array(
-				'5900' => '5901'
+				'5901' => '5900'
 			)
 		);
 		$dockerTesting->set(
