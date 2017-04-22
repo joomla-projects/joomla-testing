@@ -84,7 +84,7 @@ class RoboFile extends \Robo\Tasks
 		$dockerPHP->pull();
 		$dockerPHP->run();
 
-		return 0;
+        return 0;
 	}
 
 	/**
@@ -169,7 +169,7 @@ class RoboFile extends \Robo\Tasks
 		$dockerTesting = new TestContainer;
 		$dockerTesting->set('name', 'client');
 		$dockerTesting->set('network', $dockerNetwork);
-		$dockerTesting->set('daemon', false);
+//		$dockerTesting->set('daemon', false);
 		$dockerTesting->set(
 			'ports', array(
 				'5901' => '5900'
