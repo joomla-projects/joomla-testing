@@ -84,7 +84,7 @@ class RoboFile extends \Robo\Tasks
 		$dockerPHP->pull();
 		$dockerPHP->run();
 
-        return 0;
+		return 0;
 	}
 
 	/**
