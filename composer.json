@@ -18,8 +18,8 @@
     }
   },
   "require-dev": {
-    "joomla-projects/joomla-testing-robo": "~1",
     "consolidation/robo": "~1",
-    "symfony/process": "~3"
+    "symfony/process": "~3",
+    "joomla-projects/joomla-testing-robo"  : "dev-container-test"
   }
 }
