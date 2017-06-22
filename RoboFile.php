@@ -169,7 +169,6 @@ class RoboFile extends \Robo\Tasks
 		$dockerTesting = new TestContainer;
 		$dockerTesting->set('name', 'client');
 		$dockerTesting->set('network', $dockerNetwork);
-		$dockerTesting->set('daemon', false);
 		$dockerTesting->set(
 			'ports', array(
 				'5901' => '5900'
