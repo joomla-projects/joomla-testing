@@ -20,6 +20,7 @@ use Joomla\Testing\Docker\Network\Network;
 use Joomla\Testing\Docker\Container\MySQLContainer;
 use Joomla\Testing\Docker\Container\PHPContainer;
 use Joomla\Testing\Docker\Container\TestContainer;
+use Joomla\Testing\Util\SelectionList;
 
 /**
  * Class RoboFile
@@ -183,5 +184,17 @@ class RoboFile extends \Robo\Tasks
 		$dockerTesting->run();
 
 		return 0;
+	}
+
+	public function loadTests($ymlPath)
+	{
+		$selectionList = new SelectionList($ymlPath);
+		$task = $selectionList->pop();
+		$selectionList->execute($task);
+		for($i=0; $i<5; $i++){
+			$task = $selectionList->pop();
+		}
+		$selectionList->fail($task);
+		var_dump($selectionList->getList());
 	}
 }
