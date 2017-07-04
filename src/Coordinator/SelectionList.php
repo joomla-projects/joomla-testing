@@ -6,7 +6,7 @@
  * Time: 1:55 PM
  */
 
-namespace Joomla\Testing\Util;
+namespace Joomla\Testing\Coordinator;
 
 use Symfony\Component\Yaml\Yaml;
 

@@ -20,7 +20,8 @@ use Joomla\Testing\Docker\Network\Network;
 use Joomla\Testing\Docker\Container\MySQLContainer;
 use Joomla\Testing\Docker\Container\PHPContainer;
 use Joomla\Testing\Docker\Container\TestContainer;
-use Joomla\Testing\Util\SelectionList;
+use Joomla\Testing\Coordinator\SelectionList;
+use Joomla\Testing\Coordinator\MainCoordiantor;
 
 /**
  * Class RoboFile
@@ -127,6 +128,70 @@ class RoboFile extends \Robo\Tasks
 	 */
 	public function runTests($repoOwner, $repoName, $repoBranch)
 	{
+		$this->prepareExtension($repoOwner, $repoName, $repoBranch);
+
+		// Docker network (assuming it's started)
+		$dockerNetwork = new Network('joomla');
+
+		$dockerTesting = new TestContainer;
+		$dockerTesting->set('name', 'client');
+		$dockerTesting->set('network', $dockerNetwork);
+		$dockerTesting->set(
+			'ports', array(
+				'5901' => '5900'
+			)
+		);
+		$dockerTesting->set(
+			'volumes', array(
+				$tmpDir . '/extension' => '/usr/src/tests'
+			)
+		);
+		$dockerTesting->pull();
+		$dockerTesting->run();
+
+		return 0;
+	}
+
+	public function loadTests($ymlPath)
+	{
+		$selectionList = new SelectionList($ymlPath);
+		$task = $selectionList->pop();
+		$selectionList->execute($task);
+		for($i=0; $i<5; $i++){
+			$task = $selectionList->pop();
+		}
+		$selectionList->fail($task);
+		var_dump($selectionList->getList());
+	}
+
+	public function runCoordinator($repoOwner, $repoName, $repoBranch)
+	{
+//		$this->prepareExtension($repoOwner, $repoName, $repoBranch);
+
+		$tmpDir = __DIR__ . '/.tmp';
+		$dockyardPath = $tmpDir . "/dockyard";
+
+		$env = array(
+			'php' => ['5.4', '5.5', '5.6', '7.0', '7.1'],
+			'joomla' => ['3.6'],
+			'selenium.no' => 3,
+			'extension.path' => $tmpDir . '/extension',
+			'host.dockyard' => '.tmp/dockyard',
+		);
+
+		if (!file_exists($dockyardPath))
+		{
+			$this->_mkdir($dockyardPath);
+		}
+
+		$coordinator = new MainCoordiantor($env, $dockyardPath);
+
+		$coordinator->generateEnv();
+
+	}
+
+	public function prepareExtension($repoOwner, $repoName, $repoBranch)
+	{
 		if (empty($repoOwner) || empty($repoName))
 		{
 			$this->say('Please specify repository owner and name (Github based)');
@@ -163,38 +228,5 @@ class RoboFile extends \Robo\Tasks
 			->option('working-dir', $tmpDir . '/extension/tests')
 			->preferDist()
 			->run();
-
-		// Docker network (assuming it's started)
-		$dockerNetwork = new Network('joomla');
-
-		$dockerTesting = new TestContainer;
-		$dockerTesting->set('name', 'client');
-		$dockerTesting->set('network', $dockerNetwork);
-		$dockerTesting->set(
-			'ports', array(
-				'5901' => '5900'
-			)
-		);
-		$dockerTesting->set(
-			'volumes', array(
-				$tmpDir . '/extension' => '/usr/src/tests'
-			)
-		);
-		$dockerTesting->pull();
-		$dockerTesting->run();
-
-		return 0;
-	}
-
-	public function loadTests($ymlPath)
-	{
-		$selectionList = new SelectionList($ymlPath);
-		$task = $selectionList->pop();
-		$selectionList->execute($task);
-		for($i=0; $i<5; $i++){
-			$task = $selectionList->pop();
-		}
-		$selectionList->fail($task);
-		var_dump($selectionList->getList());
 	}
 }
