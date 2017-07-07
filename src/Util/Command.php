@@ -35,4 +35,22 @@ abstract class Command
 
 		return $process->isSuccessful();
 	}
+
+	/**
+	 * Executes a command and returns its output
+	 *
+	 * @param   string  $command  OS command to execute
+	 * @param   int     $timeout  Timeout for the command to execute
+	 *
+	 * @return boolean
+	 *
+	 * @since 1.0.0
+	 */
+	public static function executeWithOutput($command, $timeout = 600)
+	{
+		$process = new Process($command, null, null, null, $timeout);
+		$process->run();
+
+		return $process->getOutput();
+	}
 }

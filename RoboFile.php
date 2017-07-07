@@ -166,7 +166,7 @@ class RoboFile extends \Robo\Tasks
 
 	public function runCoordinator($repoOwner, $repoName, $repoBranch)
 	{
-//		$this->prepareExtension($repoOwner, $repoName, $repoBranch);
+		$this->prepareExtension($repoOwner, $repoName, $repoBranch);
 
 		$tmpDir = __DIR__ . '/.tmp';
 		$dockyardPath = $tmpDir . "/dockyard";
@@ -187,6 +187,10 @@ class RoboFile extends \Robo\Tasks
 		$coordinator = new MainCoordiantor($env, $dockyardPath);
 
 		$coordinator->generateEnv();
+
+		$coordinator->waitForDbInit();
+
+		//TODO start parallel testing
 
 	}
 

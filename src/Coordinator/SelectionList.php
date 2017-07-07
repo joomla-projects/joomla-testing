@@ -8,6 +8,7 @@
 
 namespace Joomla\Testing\Coordinator;
 
+use Joomla\Testing\Util\Flag;
 use Symfony\Component\Yaml\Yaml;
 
 class SelectionList
@@ -21,11 +22,13 @@ class SelectionList
 		Flag::FAILED   => array(),
 	);
 	private $wait = 0;
+	private $server;
 
-	public function __construct($ymlPath)
+	public function __construct($ymlPath, $server)
 	{
 		$tree = Yaml::parse(file_get_contents($ymlPath));
 		$this->read($tree, null);
+		$this->server = $server;
 	}
 
 	private function read($tree, $parent)
@@ -59,6 +62,7 @@ class SelectionList
 				$this->assign($task);
 				return $task;
 			}
+			return false;
 		}
 
 		$this->wait = 1;
@@ -100,6 +104,13 @@ class SelectionList
 	public function getList()
 	{
 		return $this->list;
+	}
+
+	public function isFinished(){
+		if (empty($this->list[Flag::NO_FLAG]){
+			return true;
+		}
+		return false;
 	}
 
 }

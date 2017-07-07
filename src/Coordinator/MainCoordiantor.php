@@ -11,6 +11,7 @@ namespace Joomla\Testing\Coordinator;
 use Joomla\Testing\Util\Command;
 use Joomla\Virtualisation\DockerComposeGeneratorApi;
 
+
 class MainCoordiantor
 {
 	private $env;
@@ -18,11 +19,26 @@ class MainCoordiantor
 	private $servers = array();
 	private $clients = array();
 	private $selectionLists = array();
+	/**
+	 * @var
+	 * Will keep the prepared tasks for execution
+	 */
+	private $runQueue;
+	/**
+	 * @var
+	 * used to manage the task allocation to the running Queue
+	 * It will ensure that no server will run all its tests before other servers also run tests
+	 * the running queue size is limited to the number of clients
+	 * therefore a server can take a maximum number fo spots in the running queue equal to
+	 * (no of clients - no of servers + 1)
+	 */
+	private $manageQueue;
+
 
 	/**
 	 * MainCoordiantor constructor.
 	 * @param $env
-	 * @param $extensionPath
+	 * @param $dockyardPath
 	 */
 	public function __construct($env, $dockyardPath)
 	{
@@ -30,8 +46,12 @@ class MainCoordiantor
 		$this->dockyardPath = $dockyardPath;
 	}
 
-	public function prepare(){
-		//ToDo How are these exactly generated?
+	public function prepare()
+	{
+		$this->runQueue = new \SplQueue();
+		$this->manageQueue= new \SplQueue();
+
+		//TODO How are these exactly generated?
 		$prefix = "dockyard_";
 		$postfix = "_1";
 
@@ -40,12 +60,15 @@ class MainCoordiantor
 			return strtolower(str_replace(['-', '.'], ['v', 'p'], $name));
 		};
 
+		//TODO Add task to check if server is ready.
 		foreach ($this->env['php'] as $php)
 		{
 			foreach ($this->env['joomla'] as $joomla)
 			{
-				$name= 'apache-' . $php . '-' . $joomla;
-				$this->servers[] = $prefix . $fixName($name) . $postfix;
+				$name = $prefix . $fixName('apache-' . $php . '-' . $joomla) . $postfix;
+				$this->servers[] = $name;
+				$this->selectionLists[$name] = new SelectionList($this->env . "/tests/acceptance/tests.yml");
+				$this->manageQueue->enqueue($name);
 			}
 		}
 
@@ -53,6 +76,7 @@ class MainCoordiantor
 		{
 			$this->clients[] = $prefix . "seleniumv$i" .$postfix;
 		}
+
 	}
 
 	public function generateEnv()
@@ -64,5 +88,45 @@ class MainCoordiantor
 		Command::execute($command);
 	}
 
+	//TODO this check needs to be done from inside a container(selenium containers have curl installed)
+	public function waitForDbInit()
+	{
+		$timeout = 0;
+
+		$fixName  = function ($name)
+		{
+			return strtolower(str_replace(['-', '.'], ['', ''], $name));
+		};
+
+		var_dump("http://j" . $fixName($this->env['joomla'][0]) . "-" . $fixName($this->env['php'][0]) . ".dev:8080");
+		//TODO add the port to the config.
+		while (!$this->isUrlAvailable("http://j" . $fixName($this->env['joomla'][0]) . "-" . $fixName($this->env['php'][0]) . ".dev:8080"))
+		{
+			sleep(1);
+			$timeout ++;
+		}
+
+	}
+
+	/**
+	 * Checks if the given URL is available
+	 *
+	 * @param   string  $url  URL to check
+	 *
+	 * @return bool
+	 */
+	private function isUrlAvailable($url)
+	{
+		$command = "curl -sL -w \"%{http_code}\\n\" -o /dev/null $url";
+
+		$code = Command::executeWithOutput($command);
+
+		if ($code == 200)
+		{
+			return true;
+		}
+
+		return false;
+	}
 
 }
