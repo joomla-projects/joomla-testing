@@ -22,13 +22,11 @@ class SelectionList
 		Flag::FAILED   => array(),
 	);
 	private $wait = 0;
-	private $server;
 
 	public function __construct($ymlPath, $server)
 	{
 		$tree = Yaml::parse(file_get_contents($ymlPath));
 		$this->read($tree, null);
-		$this->server = $server;
 	}
 
 	private function read($tree, $parent)
@@ -107,7 +105,8 @@ class SelectionList
 	}
 
 	public function isFinished(){
-		if (empty($this->list[Flag::NO_FLAG]){
+		if (empty($this->list[Flag::NO_FLAG]))
+		{
 			return true;
 		}
 		return false;

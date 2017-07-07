@@ -186,6 +186,8 @@ class RoboFile extends \Robo\Tasks
 
 		$coordinator = new MainCoordiantor($env, $dockyardPath);
 
+		$coordinator->prepare();
+
 		$coordinator->generateEnv();
 
 		$coordinator->waitForDbInit();

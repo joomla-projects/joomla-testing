@@ -65,7 +65,7 @@ class MainCoordiantor
 		{
 			foreach ($this->env['joomla'] as $joomla)
 			{
-				$name = $prefix . $fixName('apache-' . $php . '-' . $joomla) . $postfix;
+				$name = "http://" . $prefix . $fixName('apache-' . $php . '-' . $joomla) . $postfix;
 				$this->servers[] = $name;
 				$this->selectionLists[$name] = new SelectionList($this->env . "/tests/acceptance/tests.yml");
 				$this->manageQueue->enqueue($name);
@@ -88,7 +88,7 @@ class MainCoordiantor
 		Command::execute($command);
 	}
 
-	//TODO this check needs to be done from inside a container(selenium containers have curl installed)
+	//TODO make this check by looking at db, instead of servers.
 	public function waitForDbInit()
 	{
 		$timeout = 0;
@@ -98,9 +98,7 @@ class MainCoordiantor
 			return strtolower(str_replace(['-', '.'], ['', ''], $name));
 		};
 
-		var_dump("http://j" . $fixName($this->env['joomla'][0]) . "-" . $fixName($this->env['php'][0]) . ".dev:8080");
-		//TODO add the port to the config.
-		while (!$this->isUrlAvailable("http://j" . $fixName($this->env['joomla'][0]) . "-" . $fixName($this->env['php'][0]) . ".dev:8080"))
+		while (!$this->isUrlAvailable($this->servers[0]))
 		{
 			sleep(1);
 			$timeout ++;
@@ -117,7 +115,7 @@ class MainCoordiantor
 	 */
 	private function isUrlAvailable($url)
 	{
-		$command = "curl -sL -w \"%{http_code}\\n\" -o /dev/null $url";
+		$command = "docker exec " . $this->clients[0] . " /bin/sh -c \"curl -sL -w \"%{http_code}\\n\" -o /dev/null " . $url . "\"";
 
 		$code = Command::executeWithOutput($command);
 
