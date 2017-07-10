@@ -10,6 +10,7 @@ namespace Joomla\Testing\Coordinator;
 
 use Joomla\Testing\Util\Command;
 use Joomla\Virtualisation\DockerComposeGeneratorApi;
+use Joomla\Testing\Coordinator\Task;
 
 
 class MainCoordiantor
@@ -44,13 +45,12 @@ class MainCoordiantor
 	{
 		$this->env = $env;
 		$this->dockyardPath = $dockyardPath;
+		$this->runQueue = new \SplQueue();
+		$this->manageQueue= new \SplQueue();
 	}
 
 	public function prepare()
 	{
-		$this->runQueue = new \SplQueue();
-		$this->manageQueue= new \SplQueue();
-
 		//TODO How are these exactly generated?
 		$prefix = "dockyard_";
 		$postfix = "_1";
@@ -67,14 +67,24 @@ class MainCoordiantor
 			{
 				$name = "http://" . $prefix . $fixName('apache-' . $php . '-' . $joomla) . $postfix;
 				$this->servers[] = $name;
-				$this->selectionLists[$name] = new SelectionList($this->env . "/tests/acceptance/tests.yml");
+				$this->selectionLists[$name] = new SelectionList($this->env["extension.path"] . "/tests/acceptance/tests.yml");
 				$this->manageQueue->enqueue($name);
 			}
 		}
 
 		for ($i=0; $i<$this->env['selenium.no']; $i++)
 		{
-			$this->clients[] = $prefix . "seleniumv$i" .$postfix;
+			$this->clients[$prefix . "seleniumv$i" .$postfix] = 1;
+		}
+
+		//TODO Create execution handler and move this there. OVERCOMPLICATED
+		while ($this->runQueue->count() <= length($this->servers))
+		{
+			$server = $this->manageQueue->current();
+			$codeceptionTask = $this->selectionLists[$server]->pop();
+			$task = new Task($codeceptionTask, $server);
+			$this->runQueue->enqueue($task);
+			$this->manageQueue->next();
 		}
 
 	}
@@ -106,6 +116,34 @@ class MainCoordiantor
 
 	}
 
+	//TODO Create execution handler and move this there. OVERCOMPLICATED
+
+	public function runTasks()
+	{
+		foreach($this->clients as $client => $available)
+		{
+			$this->runQueue->pop()->run($client);
+		}
+		while (!$this->manageQueue->isEmpty())
+		{
+			sleep(1);
+		}
+	}
+
+	//TODO Create execution handler and move this there. OVERCOMPLICATED
+
+	private function enqueueTask(){
+		$server = $this->manageQueue->current();
+		while(!$codeceptionTask = $this->selectionLists[$server]->pop())
+		{
+			$this->manageQueue->pop();
+			$server = $this->manageQueue->current();
+		};
+		$task = new Task($codeceptionTask, $server, $this->selectionLists[$server], $this);
+		$this->runQueue->enqueue($task);
+		$this->manageQueue->next();
+	}
+
 	/**
 	 * Checks if the given URL is available
 	 *
@@ -119,12 +157,7 @@ class MainCoordiantor
 
 		$code = Command::executeWithOutput($command);
 
-		if ($code == 200)
-		{
-			return true;
-		}
-
-		return false;
+		return $code == 200;
 	}
 
 }

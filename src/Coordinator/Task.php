@@ -22,17 +22,21 @@ class Task
 	 * @param $server
 	 * @param $client
 	 */
-	public function __construct($codeceptionTask, $server, $client)
+	public function __construct($codeceptionTask, $server)
 	{
 		$this->codeceptionTask = $codeceptionTask;
 		$this->server = $server;
-		$this->client = $client;
 	}
 
-	public function run(){
-		$command = "docker exec $this->client /bin/sh -c \"cd /usr/src/tests/tests;vendor/bin/robo run:container-tests 
+	public function run($client){
+		$command = "docker exec $client /bin/sh -c \"cd /usr/src/tests/tests;vendor/bin/robo run:container-tests 
 					--single --test $this->codeceptionTask --server $this->server\"";
-		return Command::execute($command);
+
+		$result = Command::execute($command);
+	}
+
+	private function isSuccessfull($result){
+
 	}
 
 }

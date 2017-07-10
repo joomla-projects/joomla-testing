@@ -23,7 +23,7 @@ class SelectionList
 	);
 	private $wait = 0;
 
-	public function __construct($ymlPath, $server)
+	public function __construct($ymlPath)
 	{
 		$tree = Yaml::parse(file_get_contents($ymlPath));
 		$this->read($tree, null);
@@ -54,17 +54,21 @@ class SelectionList
 				{
 					$ready = 0;
 				}
+				if (isset($depends) && $this->tasks[$depends]['flag'] == Flag::FAILED)
+				{
+					$this->tasks[$task]['flag'] = Flag::FAILED;
+					break;
+				}
 			}
 			if ($ready)
 			{
 				$this->assign($task);
 				return $task;
 			}
-			return false;
 		}
 
 		$this->wait = 1;
-		return null;
+		return false;
 	}
 
 	public function changeFlag($task, $flag)
@@ -110,6 +114,10 @@ class SelectionList
 			return true;
 		}
 		return false;
+	}
+
+	public function isBlocked(){
+		return $this->wait == 1;
 	}
 
 }

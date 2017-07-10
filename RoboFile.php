@@ -130,6 +130,8 @@ class RoboFile extends \Robo\Tasks
 	{
 		$this->prepareExtension($repoOwner, $repoName, $repoBranch);
 
+		$tmpDir = __DIR__ . '/.tmp';
+
 		// Docker network (assuming it's started)
 		$dockerNetwork = new Network('joomla');
 
@@ -166,7 +168,7 @@ class RoboFile extends \Robo\Tasks
 
 	public function runCoordinator($repoOwner, $repoName, $repoBranch)
 	{
-		$this->prepareExtension($repoOwner, $repoName, $repoBranch);
+//		$this->prepareExtension($repoOwner, $repoName, $repoBranch);
 
 		$tmpDir = __DIR__ . '/.tmp';
 		$dockyardPath = $tmpDir . "/dockyard";
@@ -188,9 +190,9 @@ class RoboFile extends \Robo\Tasks
 
 		$coordinator->prepare();
 
-		$coordinator->generateEnv();
+//		$coordinator->generateEnv();
 
-		$coordinator->waitForDbInit();
+//		$coordinator->waitForDbInit();
 
 		//TODO start parallel testing
 
