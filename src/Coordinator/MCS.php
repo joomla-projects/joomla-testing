@@ -2,8 +2,8 @@
 /**
  * Created by PhpStorm.
  * User: isac
- * Date: 04/07/2017
- * Time: 10:33 AM
+ * Date: 11/07/2017
+ * Time: 2:32 PM
  */
 
 namespace Joomla\Testing\Coordinator;
@@ -11,60 +11,35 @@ namespace Joomla\Testing\Coordinator;
 use Joomla\Testing\Util\Command;
 use Joomla\Virtualisation\DockerComposeGeneratorApi;
 use Joomla\Testing\Coordinator\Task;
-
+use Memcached;
 
 /**
- * Class MainCoordiantor
+ * Class MCS - Main Coordinator Static
  * @package Joomla\Testing\Coordinator
- *
- * pseudocode for running tasks:
- *
- * initial run;
- * when a task is finished -> fill runQueue, run tasks
- * when a task is assigned -> fill runQueue
- *
- * runQueue shall have the size = number of clients in order to ensure each client has one available task(if ready);
- *
  */
-
-class MainCoordiantor
+class MCS
 {
-	private $env;
-	private $dockyardPath;
-	private $servers = array();
-	private $clients = array();
-	private $selectionLists = array();
-	/**
-	 * @var
-	 * Will keep the prepared tasks for execution
-	 */
-	private $runQueue;
-	/**
-	 * @var
-	 * used to manage the task allocation to the running Queue
-	 * It will ensure that no server will run all its tests before other servers also run tests
-	 * the running queue size is limited to the number of clients
-	 * therefore a server can take a maximum number fo spots in the running queue equal to
-	 * (no of clients - no of servers + 1)
-	 */
-	private $manageQueue;
+	const selectionLists = 'selectionlists';
+	const clients = 'clients';
+	const servers = 'servers';
+	const runQueue = 'runQueue';
+	const manageQueue = 'manageQueue';
+	const clientsNo = 'clientsNo';
+	const serversNo = 'serversNo';
+	const available = 'available';
 
-
-	/**
-	 * MainCoordiantor constructor.
-	 * @param $env
-	 * @param $dockyardPath
-	 */
-	public function __construct($env, $dockyardPath)
+	public static function prepare($env)
 	{
-		$this->env = $env;
-		$this->dockyardPath = $dockyardPath;
-		$this->runQueue = new \SplQueue();
-		$this->manageQueue= new \SplQueue();
-	}
+		$memcached = new Memcached;
+		$memcached->addServer('127.0.0.1', '11211');
+		$servers = array();
+		$clients = array();
+		$selectionLists = array();
+		$runQueue = new \SplQueue();
+		$manageQueue= new \SplQueue();
+		$clientsNo = $env['selenium.no'];
+		$serversNo = 0;
 
-	public function prepare()
-	{
 		//TODO How are these exactly generated?
 		$prefix = "dockyard_";
 		$postfix = "_1";
@@ -75,39 +50,50 @@ class MainCoordiantor
 		};
 
 		//TODO Add task to check if server is ready.
-		foreach ($this->env['php'] as $php)
+		foreach ($env['php'] as $php)
 		{
-			foreach ($this->env['joomla'] as $joomla)
+			foreach ($env['joomla'] as $joomla)
 			{
 				$name = "http://" . $prefix . $fixName('apache-' . $php . '-' . $joomla) . $postfix;
-				$this->servers[] = $name;
-				$this->selectionLists[$name] = new SelectionList($this->env["extension.path"] . "/tests/acceptance/tests.yml");
-				$this->manageQueue->enqueue($name);
+				$servers[] = $name;
+				$selectionLists[$name] = new SelectionList($env["extension.path"] . "/tests/acceptance/tests.yml");
+				$manageQueue->enqueue($name);
+				$serversNo ++;
 			}
 		}
 
-		for ($i=0; $i<$this->env['selenium.no']; $i++)
+		for ($i=0; $i<$clientsNo; $i++)
 		{
-			$this->clients[$prefix . "seleniumv$i" .$postfix] = 1;
+			$clients[$prefix . "seleniumv$i" .$postfix] = 1;
 		}
 
 		//TODO Create execution handler and move this there. OVERCOMPLICATED
-		while ($this->runQueue->count() <= length($this->servers))
+		//initial load
+		while ($runQueue->count() < $serversNo)
 		{
-			$server = $this->manageQueue->current();
-			$codeceptionTask = $this->selectionLists[$server]->pop();
+			$server = $manageQueue->pop();
+			$codeceptionTask = $selectionLists[$server]->pop();
 			$task = new Task($codeceptionTask, $server);
-			$this->runQueue->enqueue($task);
-			$this->manageQueue->next();
+			$runQueue->enqueue($task);
+			$manageQueue->add(0, $server);
 		}
 
+		$memcached->add(MCS::selectionLists, serialize($selectionLists));
+		$memcached->add(MCS::clients, $clients);
+		$memcached->add(MCS::servers, $servers);
+		$memcached->add(MCS::runQueue, serialize($runQueue));
+		$memcached->add(MCS::manageQueue, serialize($manageQueue));
+		$memcached->add(MCS::clientsNo, $clientsNo);
+		$memcached->add(MCS::serversNo, $serversNo);
+
+		var_dump($memcached->get(MCS::servers));
 	}
 
-	public function generateEnv()
+	public function generateEnv($env, $dockyardPath)
 	{
-		(new DockerComposeGeneratorApi())->generateFromConfig($this->env, $this->dockyardPath);
+		(new DockerComposeGeneratorApi())->generateFromConfig($env, $dockyardPath);
 
-		$command = "cd " . $this->dockyardPath . "&& docker-compose up -d";
+		$command = "cd " . $dockyardPath . "&& docker-compose up -d";
 
 		Command::execute($command);
 	}
