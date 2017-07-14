@@ -9,6 +9,7 @@
 namespace Joomla\Testing\Coordinator;
 
 use Joomla\Testing\Util\Command;
+use Symfony\Component\Process\Process;
 
 class Task
 {
@@ -28,15 +29,17 @@ class Task
 		$this->server = $server;
 	}
 
-	public function run($client){
-		$command = "docker exec $client /bin/sh -c \"cd /usr/src/tests/tests;vendor/bin/robo run:container-tests 
-					--single --test $this->codeceptionTask --server $this->server\"";
+	public function run($client)
+	{
+		$command = JPATH_BASE . "/vendor/bin/robo run:client-task $this->codeceptionTask $this->server $client";
 
-		$result = Command::execute($command);
-	}
+		$process = new Process($command);
+		$process->setTimeout(3600);
 
-	private function isSuccessfull($result){
+		echo "apelez";
+		$process->start();
 
+		echo "$client\n";
 	}
 
 }
