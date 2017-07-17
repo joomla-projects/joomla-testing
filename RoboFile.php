@@ -27,7 +27,6 @@ use Joomla\Testing\Docker\Container\MySQLContainer;
 use Joomla\Testing\Docker\Container\PHPContainer;
 use Joomla\Testing\Docker\Container\TestContainer;
 use Joomla\Testing\Coordinator\SelectionList;
-use Joomla\Testing\Coordinator\MainCoordiantor;
 use Joomla\Testing\Coordinator\MCS;
 use Joomla\Testing\Util\Command;
 use Joomla\Testing\Coordinator\Task;
@@ -177,7 +176,7 @@ class RoboFile extends \Robo\Tasks
 
 	public function runCoordinator($repoOwner, $repoName, $repoBranch)
 	{
-//		$this->prepareExtension($repoOwner, $repoName, $repoBranch);
+		$this->prepareExtension($repoOwner, $repoName, $repoBranch);
 
 		$tmpDir = __DIR__ . '/.tmp';
 		$dockyardPath = $tmpDir . "/dockyard";
@@ -195,64 +194,29 @@ class RoboFile extends \Robo\Tasks
 			$this->_mkdir($dockyardPath);
 		}
 
-		$coordinator = new MainCoordiantor($env, $dockyardPath);
-
-		$coordinator->prepare();
-
-//		$coordinator->generateEnv();
-
-//		$coordinator->waitForDbInit();
-
-		//TODO start parallel testing
-
-	}
-
-	public function runCoordinatorStatic($repoOwner, $repoName, $repoBranch)
-	{
-//		$this->prepareExtension($repoOwner, $repoName, $repoBranch);
-
-		$tmpDir = __DIR__ . '/.tmp';
-		$dockyardPath = $tmpDir . "/dockyard";
-
-		$env = array(
-			'php' => ['5.4', '5.5', '5.6', '7.0', '7.1'],
-			'joomla' => ['3.6'],
-			'selenium.no' => 3,
-			'extension.path' => $tmpDir . '/extension',
-			'host.dockyard' => '.tmp/dockyard',
-		);
-
-		if (!file_exists($dockyardPath))
-		{
-			$this->_mkdir($dockyardPath);
-		}
-
+		MCS::generateEnv($env, $dockyardPath);
 		MCS::prepare($env);
-
-//		$coordinator->generateEnv();
-
-//		$coordinator->waitForDbInit();
-
-		//TODO start parallel testing
-
+		MCS::waitForDbInit();
+		MCS::fillAndRun();
 	}
 
 	public function runClientTask($codeceptionTask, $server, $client){
 
-		$command = "docker exec $client /bin/sh -c \"cd /usr/src/tests/tests;vendor/bin/robo run:container-tests 
-					--single --test $codeceptionTask --server $server\"";
+		$command = "docker exec $client /bin/sh -c \"cd /usr/src/tests/tests;vendor/bin/robo run:container-test 
+					--test $codeceptionTask --server $server\"";
 
-		echo "ajungem aici";
-
+		//TODO reporting
 		$result = Command::execute($command);
 
 		if($result)
 		{
-			echo "success";
+			MCS::changeTaskStatus($server, $codeceptionTask, Task::execute);
+			MCS::fillAndRun($server);
 		}
 		else
 		{
-			echo "fail";
+			MCS::changeTaskStatus($server, $codeceptionTask, Task::fail);
+			MCS::fillAndRun($server);
 		}
 	}
 

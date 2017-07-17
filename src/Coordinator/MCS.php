@@ -30,8 +30,6 @@ class MCS
 
 	public static function prepare($env)
 	{
-		$memcached = new Memcached;
-		$memcached->addServer('127.0.0.1', '11211');
 		$servers = array();
 		$clients = array();
 		$selectionLists = array();
@@ -67,29 +65,146 @@ class MCS
 			$clients[$prefix . "seleniumv$i" .$postfix] = 1;
 		}
 
-		//TODO Create execution handler and move this there. OVERCOMPLICATED
-		//initial load
-		while ($runQueue->count() < $serversNo)
-		{
-			$server = $manageQueue->pop();
-			$codeceptionTask = $selectionLists[$server]->pop();
-			$task = new Task($codeceptionTask, $server);
-			$runQueue->enqueue($task);
-			$manageQueue->add(0, $server);
-		}
+		$info = array(
+			MCS::selectionLists => $selectionLists,
+			MCS::clients 		=> $clients,
+			MCS::servers 		=> $servers,
+			MCS::runQueue		=> $runQueue,
+			MCS::manageQueue	=> $manageQueue,
+			MCS::clientsNo		=> $clientsNo,
+			MCS::serversNo		=> $serversNo,
+			MCS::available		=> 1
+		);
 
-		$memcached->add(MCS::selectionLists, serialize($selectionLists));
-		$memcached->add(MCS::clients, $clients);
-		$memcached->add(MCS::servers, $servers);
-		$memcached->add(MCS::runQueue, serialize($runQueue));
-		$memcached->add(MCS::manageQueue, serialize($manageQueue));
-		$memcached->add(MCS::clientsNo, $clientsNo);
-		$memcached->add(MCS::serversNo, $serversNo);
-
-		var_dump($memcached->get(MCS::servers));
+		MCS::setCacheInfo($info);
 	}
 
-	public function generateEnv($env, $dockyardPath)
+	//TODO reuse memcached connection on chained events
+	//call on assign and on finished - runQueue size = §clientsNo
+	// this is how we ensure maximum efficiency
+	public static function fillAndRun($server = null)
+	{
+		$info = MCS::getCachedInfo();
+		$info = MCS::fill($info, $server);
+		$info = MCS::run($info);
+		MCS::setCacheInfo($info);
+	}
+
+	public function fill($info, $server = null)
+	{
+
+		if($server && $info[MCS::runQueue]->count() < $info[MCS::clientsNo])
+		{
+			if ($codeceptionTask = $info[MCS::selectionLists][$server]->pop())
+			{
+				$task = new Task($codeceptionTask, $server);
+				$info[MCS::runQueue]->add(0, $task);
+			}
+		}
+
+		$count = 1;
+		while ($info[MCS::runQueue]->count() < $info[MCS::clientsNo] && $count)
+		{
+			$count = 0;
+			for($i=0; $i< $info[MCS::serversNo]; $i++)
+			{
+				$server = $info[MCS::manageQueue]->pop();
+				if ($codeceptionTask = $info[MCS::selectionLists][$server]->pop())
+				{
+					$task = new Task($codeceptionTask, $server);
+					$info[MCS::runQueue]->add(0, $task);
+					$count ++;
+				}
+
+				$info[MCS::manageQueue]->add(0, $server);
+			}
+		}
+		return $info;
+
+	}
+
+	public function run($info)
+	{
+		foreach ($info[MCS::clients] as $client => $isAvailable)
+		{
+			if ($info[MCS::runQueue]->isEmpty()) break;
+			if ($isAvailable)
+			{
+				$task = $info[MCS::runQueue]->pop();
+				$task->run($client);
+			}
+		}
+
+		return $info;
+	}
+
+	public function memcachedInit()
+	{
+		$memcached = new Memcached;
+		$memcached->addServer('127.0.0.1', '11211');
+		return $memcached;
+	}
+
+	public function getCachedInfo()
+	{
+		$memcached = MCS::memcachedInit();
+
+		MCS::aquireLock($memcached);
+
+		$info[MCS::selectionLists] 	= unserialize($memcached->get(MCS::selectionLists));
+		$info[MCS::clients] 		= unserialize($memcached->get(MCS::clients));
+		$info[MCS::servers] 		= unserialize($memcached->get(MCS::servers));
+		$info[MCS::runQueue] 		= unserialize($memcached->get(MCS::runQueue));
+		$info[MCS::manageQueue] 	= unserialize($memcached->get(MCS::manageQueue));
+		$info[MCS::serversNo] 		= unserialize($memcached->get(MCS::serversNo));
+		$info[MCS::clientsNo] 		= unserialize($memcached->get(MCS::clientsNo));
+
+		return $info;
+	}
+
+	public static function changeTaskStatus($server, $codeceptionTask, $action){
+		$memcached = MCS::memcachedInit();
+		$selectionLists = unserialize($memcached->get(MCS::selectionLists));
+		$selectionLists[$server]->$action($codeceptionTask);
+		$memcached->set(MCS::selectionLists, $selectionLists);
+	}
+
+	public function aquireLock($memcached){
+		 while(!MCS::isCacheAvailable($memcached))
+		 {
+		 	//sleep for 0.2 seconds
+			 usleep(200000);
+		 }
+		 MCS::lockCache($memcached);
+	}
+
+	public function lockCache($memcached)
+	{
+		$memcached->set(MCS::available, 0);
+	}
+
+	public function unlockCache($memcached)
+	{
+		$memcached->set(MCS::available, 1);
+	}
+
+	public function isCacheAvailable($memcached)
+	{
+		return $memcached->get(MCS::available);
+	}
+
+	public function setCacheInfo($info)
+	{
+		$memcached = MCS::memcachedInit();
+
+		foreach($info as $key => $val){
+			$memcached->set($key, serialize($val));
+		}
+
+		MCS::unlockCache($memcached);
+	}
+
+	public static function generateEnv($env, $dockyardPath)
 	{
 		(new DockerComposeGeneratorApi())->generateFromConfig($env, $dockyardPath);
 
@@ -99,50 +214,13 @@ class MCS
 	}
 
 	//TODO make this check by looking at db, instead of servers.
-	public function waitForDbInit()
+	public static function waitForDbInit()
 	{
-		$timeout = 0;
-
-		$fixName  = function ($name)
-		{
-			return strtolower(str_replace(['-', '.'], ['', ''], $name));
-		};
-
 		while (!$this->isUrlAvailable($this->servers[0]))
 		{
 			sleep(1);
-			$timeout ++;
 		}
-
 	}
-
-	//TODO Create execution handler and move this there. OVERCOMPLICATED
-
-//	public function runTasks()
-//	{
-//		foreach($this->clients as $client => $available)
-//		{
-//			$this->runQueue->pop()->run($client);
-//		}
-//		while (!$this->manageQueue->isEmpty())
-//		{
-//			sleep(1);
-//		}
-//	}
-
-	//TODO Create execution handler and move this there. OVERCOMPLICATED
-
-//	private function enqueueTask(){
-//		$server = $this->manageQueue->current();
-//		while(!$codeceptionTask = $this->selectionLists[$server]->pop())
-//		{
-//			$this->manageQueue->pop();
-//			$server = $this->manageQueue->current();
-//		};
-//		$task = new Task($codeceptionTask, $server, $this->selectionLists[$server], $this);
-//		$this->runQueue->enqueue($task);
-//		$this->manageQueue->next();
-//	}
 
 	/**
 	 * Checks if the given URL is available
