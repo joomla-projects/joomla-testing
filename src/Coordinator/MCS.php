@@ -65,6 +65,10 @@ class MCS
 			$clients[$prefix . "seleniumv$i" .$postfix] = 1;
 		}
 
+		//prepare extension - as long as all containers share the same extension folder
+		$command = "docker exec " . current(array_keys($clients)) ." /bin/sh -c \"cd /usr/src/tests/tests;vendor/bin/robo run:container-test-preparation\"";
+		Command::execute($command);
+
 		$info = array(
 			MCS::selectionLists => $selectionLists,
 			MCS::clients 		=> $clients,
@@ -77,6 +81,8 @@ class MCS
 		);
 
 		MCS::setCacheInfo($info);
+
+		MCS::waitForDbInit($servers[0], current(array_keys($clients)));
 	}
 
 	//TODO reuse memcached connection on chained events
@@ -90,7 +96,7 @@ class MCS
 		MCS::setCacheInfo($info);
 	}
 
-	public function fill($info, $server = null)
+	public static function fill($info, $server = null)
 	{
 
 		if($server && $info[MCS::runQueue]->count() < $info[MCS::clientsNo])
@@ -123,7 +129,7 @@ class MCS
 
 	}
 
-	public function run($info)
+	public static function run($info)
 	{
 		foreach ($info[MCS::clients] as $client => $isAvailable)
 		{
@@ -138,14 +144,14 @@ class MCS
 		return $info;
 	}
 
-	public function memcachedInit()
+	public static function memcachedInit()
 	{
 		$memcached = new Memcached;
 		$memcached->addServer('127.0.0.1', '11211');
 		return $memcached;
 	}
 
-	public function getCachedInfo()
+	public static function getCachedInfo()
 	{
 		$memcached = MCS::memcachedInit();
 
@@ -169,7 +175,7 @@ class MCS
 		$memcached->set(MCS::selectionLists, $selectionLists);
 	}
 
-	public function aquireLock($memcached){
+	public static function aquireLock($memcached){
 		 while(!MCS::isCacheAvailable($memcached))
 		 {
 		 	//sleep for 0.2 seconds
@@ -178,22 +184,22 @@ class MCS
 		 MCS::lockCache($memcached);
 	}
 
-	public function lockCache($memcached)
+	public static function lockCache($memcached)
 	{
 		$memcached->set(MCS::available, 0);
 	}
 
-	public function unlockCache($memcached)
+	public static function unlockCache($memcached)
 	{
 		$memcached->set(MCS::available, 1);
 	}
 
-	public function isCacheAvailable($memcached)
+	public static function isCacheAvailable($memcached)
 	{
 		return $memcached->get(MCS::available);
 	}
 
-	public function setCacheInfo($info)
+	public static function setCacheInfo($info)
 	{
 		$memcached = MCS::memcachedInit();
 
@@ -214,9 +220,9 @@ class MCS
 	}
 
 	//TODO make this check by looking at db, instead of servers.
-	public static function waitForDbInit()
+	public static function waitForDbInit($server, $client)
 	{
-		while (!$this->isUrlAvailable($this->servers[0]))
+		while (!MCS::isUrlAvailable($server, $client))
 		{
 			sleep(1);
 		}
@@ -229,9 +235,9 @@ class MCS
 	 *
 	 * @return bool
 	 */
-	private function isUrlAvailable($url)
+	public static function isUrlAvailable($url, $client)
 	{
-		$command = "docker exec " . $this->clients[0] . " /bin/sh -c \"curl -sL -w \"%{http_code}\\n\" -o /dev/null " . $url . "\"";
+		$command = "docker exec " . $client . " /bin/sh -c \"curl -sL -w \"%{http_code}\\n\" -o /dev/null " . $url . "\"";
 
 		$code = Command::executeWithOutput($command);
 

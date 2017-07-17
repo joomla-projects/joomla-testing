@@ -196,7 +196,6 @@ class RoboFile extends \Robo\Tasks
 
 		MCS::generateEnv($env, $dockyardPath);
 		MCS::prepare($env);
-		MCS::waitForDbInit();
 		MCS::fillAndRun();
 	}
 
@@ -281,5 +280,10 @@ class RoboFile extends \Robo\Tasks
 			->option('working-dir', $tmpDir . '/extension/tests')
 			->preferDist()
 			->run();
+	}
+
+	public function isAvailable($client, $server)
+	{
+		MCS::waitForDbInit($client, $server);
 	}
 }
