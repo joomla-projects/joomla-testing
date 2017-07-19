@@ -177,7 +177,7 @@ class RoboFile extends \Robo\Tasks
 
 	public function runCoordinator($repoOwner, $repoName, $repoBranch)
 	{
-//		$this->prepareExtension($repoOwner, $repoName, $repoBranch);
+		$this->prepareExtension($repoOwner, $repoName, $repoBranch);
 
 		$tmpDir = __DIR__ . '/.tmp';
 		$dockyardPath = $tmpDir . "/dockyard";
@@ -195,7 +195,7 @@ class RoboFile extends \Robo\Tasks
 			$this->_mkdir($dockyardPath);
 		}
 
-//		MCS::generateEnv($env, $dockyardPath);
+		MCS::generateEnv($env, $dockyardPath);
 		MCS::prepare($env);
 		MCS::fillAndRun();
 	}
