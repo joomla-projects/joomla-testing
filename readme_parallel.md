@@ -24,7 +24,7 @@ The current behaviour is:
 
 1. The first three tasks are assigned.
 
-2. One or two are finished(failed) and the rest are assigned. And that's it.
+2. One or two are finished(failed) and the rest are assigned. And that's it, it hags here.
 
 The expected behaviour is:
 
