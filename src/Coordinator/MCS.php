@@ -47,7 +47,6 @@ class MCS
 			return strtolower(str_replace(['-', '.'], ['v', 'p'], $name));
 		};
 
-		//TODO Add task to check if server is ready.
 		foreach ($env['php'] as $php)
 		{
 			foreach ($env['joomla'] as $joomla)
@@ -83,6 +82,8 @@ class MCS
 		MCS::setCacheInfo($info);
 
 		MCS::waitForDbInit($servers[0], current(array_keys($clients)));
+
+		echo "done preparing\n";
 	}
 
 	//TODO reuse memcached connection on chained events
@@ -90,6 +91,7 @@ class MCS
 	// this is how we ensure maximum efficiency
 	public static function fillAndRun($server = null)
 	{
+		echo "fillAndRun\n";
 		$info = MCS::getCachedInfo();
 		$info = MCS::fill($info, $server);
 		$info = MCS::run($info);
@@ -98,13 +100,17 @@ class MCS
 
 	public static function fill($info, $server = null)
 	{
+		echo "start filling\n";
+		$globalCount = 0;
 
 		if($server && $info[MCS::runQueue]->count() < $info[MCS::clientsNo])
 		{
 			if ($codeceptionTask = $info[MCS::selectionLists][$server]->pop())
 			{
 				$task = new Task($codeceptionTask, $server);
+				echo "added task\n";
 				$info[MCS::runQueue]->add(0, $task);
+				$globalCount++;
 			}
 		}
 
@@ -120,26 +126,37 @@ class MCS
 					$task = new Task($codeceptionTask, $server);
 					$info[MCS::runQueue]->add(0, $task);
 					$count ++;
+					echo "added task\n";
+					$globalCount++;
 				}
 
 				$info[MCS::manageQueue]->add(0, $server);
 			}
 		}
+		echo "done filling - added $globalCount tasks\n";
 		return $info;
 
 	}
 
 	public static function run($info)
 	{
+		echo "start running\n";
+		$globalCount = 0;
+
 		foreach ($info[MCS::clients] as $client => $isAvailable)
 		{
 			if ($info[MCS::runQueue]->isEmpty()) break;
-			if ($isAvailable)
+			if ($isAvailable == 1)
 			{
 				$task = $info[MCS::runQueue]->pop();
 				$task->run($client);
+				$info[MCS::clients][$client] = 0;
+				echo "run task\n";
+				$globalCount++;
 			}
 		}
+
+		echo "runned $globalCount tasks\n";
 
 		return $info;
 	}
@@ -165,17 +182,32 @@ class MCS
 		$info[MCS::serversNo] 		= unserialize($memcached->get(MCS::serversNo));
 		$info[MCS::clientsNo] 		= unserialize($memcached->get(MCS::clientsNo));
 
+		if($info[MCS::selectionLists] == false){
+			echo "sa-mi trag palme";
+		}
 		return $info;
 	}
 
-	public static function changeTaskStatus($server, $codeceptionTask, $action){
+	public static function changeTaskStatus($codeceptionTask, $server, $client, $action){
 		$memcached = MCS::memcachedInit();
+		MCS::aquireLock($memcached);
+
+		//mark task flag
 		$selectionLists = unserialize($memcached->get(MCS::selectionLists));
 		$selectionLists[$server]->$action($codeceptionTask);
-		$memcached->set(MCS::selectionLists, $selectionLists);
+		$memcached->set(MCS::selectionLists, serialize($selectionLists));
+
+		//unlock client for next execution if task is failed or executed
+		$clients = unserialize($memcached->get(MCS::clients));
+		if ($action != Task::assign) $clients[$client] = 1;
+		$memcached->set(MCS::clients, serialize($clients));
+
+		MCS::unlockCache($memcached);
 	}
 
 	public static function aquireLock($memcached){
+		//this blocks the whole thread;
+		//needs fixing or redesign
 		 while(!MCS::isCacheAvailable($memcached))
 		 {
 		 	//sleep for 0.2 seconds
@@ -187,11 +219,13 @@ class MCS
 	public static function lockCache($memcached)
 	{
 		$memcached->set(MCS::available, 0);
+		echo "memcached locked\n";
 	}
 
 	public static function unlockCache($memcached)
 	{
 		$memcached->set(MCS::available, 1);
+		echo "memcached unlocked\n";
 	}
 
 	public static function isCacheAvailable($memcached)

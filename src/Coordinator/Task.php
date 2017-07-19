@@ -8,9 +8,7 @@
 
 namespace Joomla\Testing\Coordinator;
 
-use Joomla\Testing\Util\Command;
 use Symfony\Component\Process\Process;
-use Joomla\Testing\Coordinator\MCS;
 
 class Task
 {
@@ -36,14 +34,18 @@ class Task
 
 	public function run($client)
 	{
-		$command = JPATH_BASE . "/vendor/bin/robo run:client-task $this->codeceptionTask $this->server $client >/dev/null 2>&1 &";
+		$command = JPATH_BASE . "/vendor/bin/robo run:client-task $this->codeceptionTask $this->server $client >>" .JPATH_BASE. "/coordinator.log 2>&1 &";
 		$process = new Process($command);
 		$process->setTimeout(3600);
 		$process->start();
 
-		MCS::changeTaskStatus($this->server, $this->codeceptionTask, Task::assign);
-		MCS::fillAndRun($this->server);
+		//TODO do we need a proper logging system?
+		$command = JPATH_BASE . "/vendor/bin/robo manage:task $this->codeceptionTask $this->server $client " . Task::assign . " >>" .JPATH_BASE. "/coordinator.log 2>&1 &";
+		$process = new Process($command);
+		$process->setTimeout(3600);
+		$process->start();
 
+		//ToDo mark $client as busy
 	}
 
 }

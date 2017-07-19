@@ -30,6 +30,7 @@ use Joomla\Testing\Coordinator\SelectionList;
 use Joomla\Testing\Coordinator\MCS;
 use Joomla\Testing\Util\Command;
 use Joomla\Testing\Coordinator\Task;
+use Symfony\Component\Process\Process;
 
 /**
  * Class RoboFile
@@ -176,7 +177,7 @@ class RoboFile extends \Robo\Tasks
 
 	public function runCoordinator($repoOwner, $repoName, $repoBranch)
 	{
-		$this->prepareExtension($repoOwner, $repoName, $repoBranch);
+//		$this->prepareExtension($repoOwner, $repoName, $repoBranch);
 
 		$tmpDir = __DIR__ . '/.tmp';
 		$dockyardPath = $tmpDir . "/dockyard";
@@ -194,29 +195,39 @@ class RoboFile extends \Robo\Tasks
 			$this->_mkdir($dockyardPath);
 		}
 
-		MCS::generateEnv($env, $dockyardPath);
+//		MCS::generateEnv($env, $dockyardPath);
 		MCS::prepare($env);
 		MCS::fillAndRun();
 	}
 
-	public function runClientTask($codeceptionTask, $server, $client){
-
+	public function runClientTask($codeceptionTask, $server, $client)
+	{
 		$command = "docker exec $client /bin/sh -c \"cd /usr/src/tests/tests;vendor/bin/robo run:container-test 
 					--test $codeceptionTask --server $server\"";
 
 		//TODO reporting
-		$result = Command::execute($command);
-
-		if($result)
+		$result = Command::executeWithOutput($command, 3600);
+		if(strpos($result, "SUCCESS"))
 		{
-			MCS::changeTaskStatus($server, $codeceptionTask, Task::execute);
-			MCS::fillAndRun($server);
+			$command = JPATH_BASE . "/vendor/bin/robo manage:task $codeceptionTask $server $client " . Task::execute . " >>" .JPATH_BASE. "/coordinator.log 2>&1 &";
+			$process = new Process($command);
+			$process->setTimeout(3600);
+			$process->start();
 		}
 		else
 		{
-			MCS::changeTaskStatus($server, $codeceptionTask, Task::fail);
-			MCS::fillAndRun($server);
+			$command = JPATH_BASE . "/vendor/bin/robo manage:task $codeceptionTask $server $client " . Task::fail . " >>" .JPATH_BASE. "/coordinator.log 2>&1 &";
+			$process = new Process($command);
+			$process->setTimeout(3600);
+			$process->start();
 		}
+	}
+
+	public function manageTask($codeceptionTask, $server, $client, $action)
+	{
+ 		MCS::changeTaskStatus($codeceptionTask, $server, $client, $action);
+		echo "$codeceptionTask $action on server $server with client $client\n";
+		MCS::fillAndRun($server);
 	}
 
 	public function runAsyncTest(){
@@ -238,7 +249,6 @@ class RoboFile extends \Robo\Tasks
 		$task1->run($client1);
 		$task2->run($client2);
 		$task3->run($client3);
-
 	}
 
 
