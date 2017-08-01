@@ -40,10 +40,11 @@ class Task
 		$process->start();
 
 		//TODO do we need a proper logging system?
-		$command = JPATH_BASE . "/vendor/bin/robo manage:task $this->codeceptionTask $this->server $client " . Task::assign . " >>" .JPATH_BASE. "/coordinator.log 2>&1 &";
-		$process = new Process($command);
-		$process->setTimeout(3600);
-		$process->start();
+		//moved to runClientTask
+//		$command = JPATH_BASE . "/vendor/bin/robo manage:task $this->codeceptionTask $this->server $client " . Task::assign . " >>" .JPATH_BASE. "/coordinator.log 2>&1 &";
+//		$process = new Process($command);
+//		$process->setTimeout(3600);
+//		$process->start();
 
 		//ToDo mark $client as busy
 	}

@@ -202,6 +202,12 @@ class RoboFile extends \Robo\Tasks
 
 	public function runClientTask($codeceptionTask, $server, $client)
 	{
+		//synchronous
+		$command = JPATH_BASE . "/vendor/bin/robo manage:task $codeceptionTask $server $client " . Task::assign . " >>" .JPATH_BASE. "/coordinator.log 2>&1 &";
+		$process = new Process($command);
+		$process->setTimeout(3600);
+		$process->run();
+
 		$command = "docker exec $client /bin/sh -c \"cd /usr/src/tests/tests;vendor/bin/robo run:container-test 
 					--test $codeceptionTask --server $server\"";
 
@@ -212,14 +218,14 @@ class RoboFile extends \Robo\Tasks
 			$command = JPATH_BASE . "/vendor/bin/robo manage:task $codeceptionTask $server $client " . Task::execute . " >>" .JPATH_BASE. "/coordinator.log 2>&1 &";
 			$process = new Process($command);
 			$process->setTimeout(3600);
-			$process->start();
+			$process->run();
 		}
 		else
 		{
 			$command = JPATH_BASE . "/vendor/bin/robo manage:task $codeceptionTask $server $client " . Task::fail . " >>" .JPATH_BASE. "/coordinator.log 2>&1 &";
 			$process = new Process($command);
 			$process->setTimeout(3600);
-			$process->start();
+			$process->run();
 		}
 	}
 

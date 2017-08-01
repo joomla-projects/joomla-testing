@@ -260,6 +260,8 @@ class MCS
 		{
 			sleep(1);
 		}
+
+		echo "db init finished\n";
 	}
 
 	/**
