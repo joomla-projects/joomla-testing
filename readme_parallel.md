@@ -6,6 +6,8 @@ Make sure yoy have the Virtualisation repo at the same level as the Joomla-testi
 "Joomla\\Virtualisation\\" : "../virtualisation/src/"
 ```
 
+Before you run the tests, make sure memcached is running you your machine(`memcached -d`), it is set to run on localhost on the default port.
+
 In order to run the tests, simply run the following command:
 
 ```
