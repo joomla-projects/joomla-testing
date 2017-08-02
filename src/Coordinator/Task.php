@@ -49,4 +49,8 @@ class Task
 		//ToDo mark $client as busy
 	}
 
+	public function getTask(){
+		return $this->codeceptionTask;
+	}
+
 }

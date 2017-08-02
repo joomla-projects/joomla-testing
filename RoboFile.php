@@ -208,12 +208,11 @@ class RoboFile extends \Robo\Tasks
 		$process->setTimeout(3600);
 		$process->run();
 
-		$command = "docker exec $client /bin/sh -c \"cd /usr/src/tests/tests;vendor/bin/robo run:container-test 
-					--test $codeceptionTask --server $server\"";
+		$command = "docker exec $client /bin/sh -c \"cd /usr/src/tests/tests;vendor/bin/robo run:container-test --test $codeceptionTask --server $server\"";
 
 		//TODO reporting
 		$result = Command::executeWithOutput($command, 3600);
-		if(strpos($result, "SUCCESS"))
+		if(strpos($result, "OK") > 0)
 		{
 			$command = JPATH_BASE . "/vendor/bin/robo manage:task $codeceptionTask $server $client " . Task::execute . " >>" .JPATH_BASE. "/coordinator.log 2>&1 &";
 			$process = new Process($command);
@@ -296,6 +295,12 @@ class RoboFile extends \Robo\Tasks
 			->option('working-dir', $tmpDir . '/extension/tests')
 			->preferDist()
 			->run();
+
+		// Prepare the testing package
+		$command = JPATH_BASE . ".tmp/extension/tests/vendor/bin/robo prepare:testing-package >" .JPATH_BASE. "/coordinator.log 2>&1 &";
+		$process = new Process($command);
+		$process->setTimeout(3600);
+		$process->run();
 	}
 
 	public function isAvailable($client, $server)

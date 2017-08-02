@@ -57,6 +57,7 @@ class SelectionList
 				if (isset($depends) && $this->tasks[$depends]['flag'] == Flag::FAILED)
 				{
 					$this->tasks[$task]['flag'] = Flag::FAILED;
+					echo "$task failed\n";
 					break;
 				}
 			}

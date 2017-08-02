@@ -9,7 +9,7 @@
 namespace Joomla\Testing\Coordinator;
 
 use Joomla\Testing\Util\Command;
-use Joomla\Virtualisation\DockerComposeGeneratorApi;
+use Joomla\Virtualisation\DockerComposeGeneratorAPI;
 use Joomla\Testing\Coordinator\Task;
 use Memcached;
 
@@ -51,7 +51,7 @@ class MCS
 		{
 			foreach ($env['joomla'] as $joomla)
 			{
-				$name = "http://" . $prefix . $fixName('apache-' . $php . '-' . $joomla) . $postfix;
+				$name = $prefix . $fixName('apache-' . $php . '-' . $joomla) . $postfix;
 				$servers[] = $name;
 				$selectionLists[$name] = new SelectionList($env["extension.path"] . "/tests/acceptance/tests.yml");
 				$manageQueue->enqueue($name);
@@ -143,6 +143,8 @@ class MCS
 		echo "start running\n";
 		$globalCount = 0;
 
+		var_dump($info[MCS::clients]);
+
 		foreach ($info[MCS::clients] as $client => $isAvailable)
 		{
 			if ($info[MCS::runQueue]->isEmpty()) break;
@@ -151,7 +153,7 @@ class MCS
 				$task = $info[MCS::runQueue]->pop();
 				$task->run($client);
 				$info[MCS::clients][$client] = 0;
-				echo "run task\n";
+				echo "run task ". $task->getTask()." \n";
 				$globalCount++;
 			}
 		}
@@ -246,7 +248,7 @@ class MCS
 
 	public static function generateEnv($env, $dockyardPath)
 	{
-		(new DockerComposeGeneratorApi())->generateFromConfig($env, $dockyardPath);
+		(new DockerComposeGeneratorAPI())->generateFromConfig($env, $dockyardPath);
 
 		$command = "cd " . $dockyardPath . "&& docker-compose up -d";
 
@@ -273,7 +275,7 @@ class MCS
 	 */
 	public static function isUrlAvailable($url, $client)
 	{
-		$command = "docker exec " . $client . " /bin/sh -c \"curl -sL -w \"%{http_code}\\n\" -o /dev/null " . $url . "\"";
+		$command = "docker exec " . $client . " /bin/sh -c \"curl -sL -w \"%{http_code}\\n\" -o /dev/null http://" . $url . "\"";
 
 		$code = Command::executeWithOutput($command);
 
