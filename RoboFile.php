@@ -30,7 +30,6 @@ use Joomla\Testing\Coordinator\SelectionList;
 use Joomla\Testing\Coordinator\MCS;
 use Joomla\Testing\Util\Command;
 use Joomla\Testing\Coordinator\Task;
-use Symfony\Component\Process\Process;
 
 /**
  * Class RoboFile
@@ -163,6 +162,11 @@ class RoboFile extends \Robo\Tasks
 		return 0;
 	}
 
+	/**
+	 * manual test for the SelectionList
+	 *
+	 * @param $ymlPath
+	 */
 	public function loadTests($ymlPath)
 	{
 		$selectionList = new SelectionList($ymlPath);
@@ -175,15 +179,25 @@ class RoboFile extends \Robo\Tasks
 		var_dump($selectionList->getList());
 	}
 
+	/**
+	 * runs the tests for the servers defined in the below $env
+	 * tests are run in parallel with the use of the MainCoordinator(MCS)
+	 * environment is started by the use of the virtualisation package
+	 *
+	 * @param $repoOwner
+	 * @param $repoName
+	 * @param $repoBranch
+	 */
 	public function runCoordinator($repoOwner, $repoName, $repoBranch)
 	{
 		$this->prepareExtension($repoOwner, $repoName, $repoBranch);
+		exec("echo start >" .JPATH_BASE. "/coordinator.log");
 
 		$tmpDir = __DIR__ . '/.tmp';
 		$dockyardPath = $tmpDir . "/dockyard";
 
 		$env = array(
-			'php' => ['5.4', '5.5', '5.6', '7.0', '7.1'],
+			'php' => ['7.0', '7.1'],
 			'joomla' => ['3.6'],
 			'selenium.no' => 3,
 			'extension.path' => $tmpDir . '/extension',
@@ -200,63 +214,41 @@ class RoboFile extends \Robo\Tasks
 		MCS::fillAndRun();
 	}
 
+	/**
+	 * runs a specific task on a specific server using a specific client
+	 * manages the task after completion
+	 *
+	 * @param $codeceptionTask
+	 * @param $server
+	 * @param $client
+	 */
 	public function runClientTask($codeceptionTask, $server, $client)
 	{
 		//synchronous
-		$command = JPATH_BASE . "/vendor/bin/robo manage:task $codeceptionTask $server $client " . Task::assign . " >>" .JPATH_BASE. "/coordinator.log 2>&1 &";
-		$process = new Process($command);
-		$process->setTimeout(3600);
-		$process->run();
-
 		$command = "docker exec $client /bin/sh -c \"cd /usr/src/tests/tests;vendor/bin/robo run:container-test --test $codeceptionTask --server $server\"";
 
-		//TODO reporting
 		$result = Command::executeWithOutput($command, 3600);
 		if(strpos($result, "OK") > 0)
 		{
-			$command = JPATH_BASE . "/vendor/bin/robo manage:task $codeceptionTask $server $client " . Task::execute . " >>" .JPATH_BASE. "/coordinator.log 2>&1 &";
-			$process = new Process($command);
-			$process->setTimeout(3600);
-			$process->run();
+			MCS::manageTask($codeceptionTask, $server, Task::execute, $client);
 		}
 		else
 		{
-			$command = JPATH_BASE . "/vendor/bin/robo manage:task $codeceptionTask $server $client " . Task::fail . " >>" .JPATH_BASE. "/coordinator.log 2>&1 &";
-			$process = new Process($command);
-			$process->setTimeout(3600);
-			$process->run();
+			MCS::manageTask($codeceptionTask, $server, Task::fail, $client);
 		}
 	}
 
-	public function manageTask($codeceptionTask, $server, $client, $action)
-	{
- 		MCS::changeTaskStatus($codeceptionTask, $server, $client, $action);
-		echo "$codeceptionTask $action on server $server with client $client\n";
-		MCS::fillAndRun($server);
-	}
-
-	public function runAsyncTest(){
-		// make sure the environment is up and running;
-
-		$server1 = "dockyard_apachev7p0v3p6_1";
-		$server2 = "dockyard_apachev7p1v3p6_1";
-		$server3 = "dockyard_apachev5p4v3p6_1";
-		$client1 = "dockyard_seleniumv0_1";
-		$client2 = "dockyard_seleniumv1_1";
-		$client3 = "dockyard_seleniumv2_1";
-
-		$codeceptionTask = "install/InstallWeblinksCest.php:installWeblinks";
-
-		$task1 = new Task($codeceptionTask, $server1);
-		$task2 = new Task($codeceptionTask, $server2);
-		$task3 = new Task($codeceptionTask, $server3);
-
-		$task1->run($client1);
-		$task2->run($client2);
-		$task3->run($client3);
-	}
-
-
+	/**
+	 * prepares the extension for testing:
+	 * 1. clones the repo
+	 * 2. runs composer install
+	 * 3. runs Container Test Preparation
+	 *
+	 * @param $repoOwner
+	 * @param $repoName
+	 * @param $repoBranch
+	 * @return int
+	 */
 	public function prepareExtension($repoOwner, $repoName, $repoBranch)
 	{
 		if (empty($repoOwner) || empty($repoName))
@@ -297,14 +289,7 @@ class RoboFile extends \Robo\Tasks
 			->run();
 
 		// Prepare the testing package
-		$command = JPATH_BASE . ".tmp/extension/tests/vendor/bin/robo prepare:testing-package >" .JPATH_BASE. "/coordinator.log 2>&1 &";
-		$process = new Process($command);
-		$process->setTimeout(3600);
-		$process->run();
-	}
-
-	public function isAvailable($client, $server)
-	{
-		MCS::waitForDbInit($client, $server);
+		$command = "cd " . JPATH_BASE . "/.tmp/extension/tests;vendor/bin/robo run:container-test-preparation >" .JPATH_BASE. "/coordinator.log 2>&1 &";
+		Command::execute($command);
 	}
 }
