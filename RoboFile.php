@@ -197,7 +197,7 @@ class RoboFile extends \Robo\Tasks
 		$dockyardPath = $tmpDir . "/dockyard";
 
 		$env = array(
-			'php' => ['7.0', '7.1'],
+			'php' => ['5.4', '7.0', '7.1'],
 			'joomla' => ['3.6'],
 			'selenium.no' => 3,
 			'extension.path' => $tmpDir . '/extension',
@@ -225,7 +225,9 @@ class RoboFile extends \Robo\Tasks
 	public function runClientTask($codeceptionTask, $server, $client)
 	{
 		//synchronous
-		$command = "docker exec $client /bin/sh -c \"cd /usr/src/tests/tests;vendor/bin/robo run:container-test --test $codeceptionTask --server $server\"";
+		//use separate environment for each $server in order to avoid acceptance.suite.yml override
+		//use special codeception config for each environment
+		$command = "docker exec $client /bin/sh -c \"cd /usr/src/tests/tests;vendor/bin/robo run:container-test --config='-c _configs/$server.yml' --test $codeceptionTask --server $server --env $server\"";
 
 		$result = Command::executeWithOutput($command, 3600);
 		if(strpos($result, "OK") > 0)

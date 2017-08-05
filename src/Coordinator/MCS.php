@@ -111,6 +111,8 @@ class MCS
 				$selectionLists[$name] = new SelectionList($env["extension.path"] . "/tests/acceptance/tests.yml");
 				$manageQueue->enqueue($name);
 				$serversNo ++;
+				MCS::prepareCodeception($env["extension.path"] . "/tests/_envs", "env.dist.yml", $name);
+				MCS::prepareCodeception($env["extension.path"] . "/tests/_configs", "codeception.dist.yml", $name);
 			}
 		}
 
@@ -237,6 +239,7 @@ class MCS
 			}
 		}
 
+		// count is used for checking if there is any test available in all the selection lists, if not, exit the while
 		$count = 1;
 		while ($info[MCS::runQueue]->count() < $info[MCS::clientsNo] && $count)
 		{
@@ -259,7 +262,6 @@ class MCS
 			}
 		}
 //		echo "done filling - added $globalCount tasks\n";
-
 		return $info;
 	}
 
@@ -325,6 +327,20 @@ class MCS
 		$code = Command::executeWithOutput($command);
 
 		return $code == 200;
+	}
+
+	private static function prepareCodeception($path, $file, $server)
+	{
+		$templateFile = "$path/$file";
+		$resultFile = "$path/$server.yml";
+		$initialSuite = fopen($templateFile, "r") or die("Unable to open file!");
+		$txt = fread($initialSuite, filesize($templateFile));
+		fclose($initialSuite);
+
+		$finalSuite = fopen($resultFile, "w") or die("Unable to open file!");
+		$txt = str_replace("###", $server, $txt);
+		fwrite($finalSuite, $txt);
+		fclose($finalSuite);
 	}
 
 }
