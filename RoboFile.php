@@ -197,7 +197,7 @@ class RoboFile extends \Robo\Tasks
 		$dockyardPath = $tmpDir . "/dockyard";
 
 		$env = array(
-			'php' => ['5.4', '7.0', '7.1'],
+			'php' => ['5.4', '5.5', '5.6', '7.0', '7.1'],
 			'joomla' => ['3.6'],
 			'selenium.no' => 3,
 			'extension.path' => $tmpDir . '/extension',
@@ -227,7 +227,7 @@ class RoboFile extends \Robo\Tasks
 		//synchronous
 		//use separate environment for each $server in order to avoid acceptance.suite.yml override
 		//use special codeception config for each environment
-		$command = "docker exec $client /bin/sh -c \"cd /usr/src/tests/tests;vendor/bin/robo run:container-test --config='-c _configs/$server.yml' --test $codeceptionTask --server $server --env $server\"";
+		$command = "docker exec $client /bin/sh -c \"cd /usr/src/tests/tests;vendor/bin/robo run:container-test --debug --config='-c _configs/$server.yml' --test $codeceptionTask --server $server --env $server\"";
 
 		$result = Command::executeWithOutput($command, 3600);
 		if(strpos($result, "OK") > 0)
@@ -236,6 +236,15 @@ class RoboFile extends \Robo\Tasks
 		}
 		else
 		{
+			$tmp = explode('/', $codeceptionTask);
+			$outputDir = __DIR__ . '/.tmp/extension/tests/_output/' . $server;
+			$outputFile = preg_replace("/php:/", "", end($tmp)) . ".fail.log";
+			$outputLog = "$outputDir/$outputFile";
+
+			$logWriter = fopen($outputLog, "w") or die("Unable to open file!");
+			fwrite($logWriter, $result);
+			fclose($logWriter);
+
 			MCS::manageTask($codeceptionTask, $server, Task::fail, $client);
 		}
 	}

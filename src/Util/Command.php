@@ -19,7 +19,7 @@ use Symfony\Component\Process\Process;
 abstract class Command
 {
 	/**
-	 * Executes a command and returns its output
+	 * Executes a command and returns its success
 	 *
 	 * @param   string  $command  OS command to execute
 	 * @param   int     $timeout  Timeout for the command to execute
@@ -42,7 +42,7 @@ abstract class Command
 	 * @param   string  $command  OS command to execute
 	 * @param   int     $timeout  Timeout for the command to execute
 	 *
-	 * @return boolean
+	 * @return string
 	 *
 	 * @since 1.0.0
 	 */
