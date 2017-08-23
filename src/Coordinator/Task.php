@@ -1,9 +1,10 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: isac
- * Date: 06/07/2017
- * Time: 6:00 PM
+ * @package     Joomla\Testing
+ * @subpackage  Coordinator
+ *
+ * @copyright   Copyright (C) 2005 - 2016 Open Source Matters, Inc. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
 
 namespace Joomla\Testing\Coordinator;
@@ -23,9 +24,9 @@ class Task
 	/**
 	 * names of the methods from the Selection List which change the task flag
 	 */
-	const execute = "execute";
-	const assign = "assign";
-	const fail   = "fail";
+	const EXECUTE = "execute";
+	const ASSIGN = "assign";
+	const FAIL   = "fail";
 
 	/**
 	 * Task constructor.

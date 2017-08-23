@@ -1,9 +1,10 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: isac
- * Date: 30/06/2017
- * Time: 1:55 PM
+ * @package     Joomla\Testing
+ * @subpackage  Coordinator
+ *
+ * @copyright   Copyright (C) 2005 - 2016 Open Source Matters, Inc. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
 
 namespace Joomla\Testing\Coordinator;

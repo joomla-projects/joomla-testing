@@ -1,9 +1,10 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: isac
- * Date: 11/07/2017
- * Time: 2:32 PM
+ * @package     Joomla\Testing
+ * @subpackage  Coordinator
+ *
+ * @copyright   Copyright (C) 2005 - 2016 Open Source Matters, Inc. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
 
 namespace Joomla\Testing\Coordinator;
@@ -16,7 +17,7 @@ use Joomla\Testing\Coordinator\Task;
 //TODO(improvement) -> reuse memcache instance when possible, especially manageTask;
 
 /**
- * Class MCS - Main Coordinator Static
+ * Class MainCoordinator
  *
  * In charge of coordinativ the parallel testing environment
  * It is a static class(all of its methods are static) because it will be use asynchronously in robo tasks,
@@ -24,25 +25,25 @@ use Joomla\Testing\Coordinator\Task;
  *
  * @package Joomla\Testing\Coordinator
  */
-class MCS
+class MainCoordinator
 {
 	/**
 	 * Cache keys
 	 */
-	const selectionLists = 'selectionlists';
-	const clients = 'clients';
-	const servers = 'servers';
-	const runQueue = 'runQueue';
-	const manageQueue = 'manageQueue';
-	const clientsNo = 'clientsNo';
-	const serversNo = 'serversNo';
-	const available = 'available';
+	const SELECTION_LISTS = 'selectionlists';
+	const CLIENTS = 'clients';
+	const SERVERS = 'servers';
+	const RUN_QUEUE = 'runQueue';
+	const MANAGE_QUEUE = 'manageQueue';
+	const CLIENTS_NO = 'clientsNo';
+	const SERVERS_NO = 'serversNo';
+	const AVAILABLE = 'available';
 
 	/**
 	 * memcached connection information
 	 */
-	const memcachedHost = '127.0.0.1';
-	const memcachedPort = '11211';
+	const MEMCACHED_HOST = '127.0.0.1';
+	const MEMCACHED_PORT = '11211';
 
 
 	/**
@@ -51,7 +52,7 @@ class MCS
 	 *
 	 * @param $env
 	 */
-	public static function prepare($env)
+	public function prepare($env)
 	{
 //		echo "prepare\n";
 		/**
@@ -111,8 +112,8 @@ class MCS
 				$selectionLists[$name] = new SelectionList($env["extension.path"] . "/tests/acceptance/tests.yml");
 				$manageQueue->enqueue($name);
 				$serversNo ++;
-				MCS::prepareCodeception($env["extension.path"] . "/tests/_envs", "env.dist.yml", $name);
-				MCS::prepareCodeception($env["extension.path"] . "/tests/_configs", "codeception.dist.yml", $name);
+				$this->prepareCodeception($env["extension.path"] . "/tests/_envs", "env.dist.yml", $name);
+				$this->prepareCodeception($env["extension.path"] . "/tests/_configs", "codeception.dist.yml", $name);
 			}
 		}
 
@@ -122,20 +123,20 @@ class MCS
 		}
 
 		$info = array(
-			MCS::selectionLists => $selectionLists,
-			MCS::clients 		=> $clients,
-			MCS::servers 		=> $servers,
-			MCS::runQueue		=> $runQueue,
-			MCS::manageQueue	=> $manageQueue,
-			MCS::clientsNo		=> $clientsNo,
-			MCS::serversNo		=> $serversNo,
-			MCS::available		=> 1
+			$this::SELECTION_LISTS => $selectionLists,
+			$this::CLIENTS 		=> $clients,
+			$this::SERVERS 		=> $servers,
+			$this::RUN_QUEUE		=> $runQueue,
+			$this::MANAGE_QUEUE	=> $manageQueue,
+			$this::CLIENTS_NO		=> $clientsNo,
+			$this::SERVERS_NO		=> $serversNo,
+			$this::AVAILABLE		=> 1
 		);
 
-		$memcached = new Storage(MCS::memcachedHost, MCS::memcachedPort);
+		$memcached = new Storage($this::MEMCACHED_HOST, $this::MEMCACHED_PORT);
 		$memcached->setCacheInfo($info);
 
-		MCS::waitForDbInit($servers[0], current(array_keys($clients)));
+		$this->havingStartNetwork($servers[0], current(array_keys($clients)));
 
 //		echo "done preparing\n";
 	}
@@ -148,20 +149,20 @@ class MCS
 	 *
 	 * @param null $server
 	 */
-	public static function fillAndRun($server = null)
+	public function fillAndRun($server = null)
 	{
 //		echo "fillAndRun\n";
-		$memcached = new Storage(MCS::memcachedHost, MCS::memcachedPort);
+		$memcached = new Storage($this::MEMCACHED_HOST, $this::MEMCACHED_PORT);
 		$info = $memcached->getCachedInfo();
-		$info = MCS::fill($info, $server);
-		$info = MCS::run($info);
+		$info = $this->fill($info, $server);
+		$info = $this->run($info);
 
-		if (isset($server) && $info[MCS::selectionLists][$server]->isFinished())
+		if (isset($server) && $info[$this::SELECTION_LISTS][$server]->isFinished())
 		{
 			echo "Results on server $server are:\n";
-			echo "Executed" . $info[MCS::selectionLists][$server]->getNoExecuted() . "\n";
-			echo "Failed " . $info[MCS::selectionLists][$server]->getNoFailed() . "\n";
-			echo "Total " . $info[MCS::selectionLists][$server]->getNoTasks() . "\n\n";
+			echo "Executed" . $info[$this::SELECTION_LISTS][$server]->getNoExecuted() . "\n";
+			echo "Failed " . $info[$this::SELECTION_LISTS][$server]->getNoFailed() . "\n";
+			echo "Total " . $info[$this::SELECTION_LISTS][$server]->getNoTasks() . "\n\n";
 		}
 
 		$memcached->setCacheInfo($info);
@@ -175,9 +176,9 @@ class MCS
 	 * @param $client
 	 * @param $action
 	 */
-	public static function changeTaskStatus($codeceptionTask, $server, $client, $action)
+	public function changeTaskStatus($codeceptionTask, $server, $client, $action)
 	{
-		$memcached = new Storage(MCS::memcachedHost, MCS::memcachedPort);
+		$memcached = new Storage($this::MEMCACHED_HOST, $this::MEMCACHED_PORT);
 		$memcached->changeTaskStatus($codeceptionTask, $server, $client, $action);
 	}
 
@@ -187,7 +188,7 @@ class MCS
 	 * @param $env
 	 * @param $dockyardPath
 	 */
-	public static function generateEnv($env, $dockyardPath)
+	public function generateEnv($env, $dockyardPath)
 	{
 		(new DockerComposeGeneratorAPI())->generateFromConfig($env, $dockyardPath);
 
@@ -206,11 +207,11 @@ class MCS
 	 * @param $client
 	 * @param $action
 	 */
-	public static function manageTask($codeceptionTask, $server, $action, $client = null)
+	public function manageTask($codeceptionTask, $server, $action, $client = null)
 	{
-		MCS::changeTaskStatus($codeceptionTask, $server, $client, $action);
+		$this->changeTaskStatus($codeceptionTask, $server, $client, $action);
 		echo "$server $action $codeceptionTask with client $client\n";
-		MCS::fillAndRun($server);
+		$this->fillAndRun($server);
 	}
 
 	/**
@@ -220,19 +221,19 @@ class MCS
 	 * @param null $server
 	 * @return mixed
 	 */
-	private static function fill($info, $server = null)
+	private function fill($info, $server = null)
 	{
 //		echo "start filling\n";
 		$globalCount = 0;
 
-		if($server && $info[MCS::runQueue]->count() < $info[MCS::clientsNo])
+		if($server && $info[$this::RUN_QUEUE]->count() < $info[$this::CLIENTS_NO])
 		{
-			if ($codeceptionTask = $info[MCS::selectionLists][$server]->pop())
+			if ($codeceptionTask = $info[$this::SELECTION_LISTS][$server]->pop())
 			{
 				$task = new Task($codeceptionTask, $server);
 //				echo "added task\n";
-				$info[MCS::runQueue]->add(0, $task);
-				$info[MCS::selectionLists][$server]->assign($codeceptionTask);
+				$info[$this::RUN_QUEUE]->add(0, $task);
+				$info[$this::SELECTION_LISTS][$server]->assign($codeceptionTask);
 				echo "$server assign $codeceptionTask\n";
 
 				$globalCount++;
@@ -241,24 +242,24 @@ class MCS
 
 		// count is used for checking if there is any test available in all the selection lists, if not, exit the while
 		$count = 1;
-		while ($info[MCS::runQueue]->count() < $info[MCS::clientsNo] && $count)
+		while ($info[$this::RUN_QUEUE]->count() < $info[$this::CLIENTS_NO] && $count)
 		{
 			$count = 0;
-			for($i=0; $i< $info[MCS::serversNo]; $i++)
+			for($i=0; $i< $info[$this::SERVERS_NO]; $i++)
 			{
-				$server = $info[MCS::manageQueue]->pop();
-				if ($codeceptionTask = $info[MCS::selectionLists][$server]->pop())
+				$server = $info[$this::MANAGE_QUEUE]->pop();
+				if ($codeceptionTask = $info[$this::SELECTION_LISTS][$server]->pop())
 				{
 					$task = new Task($codeceptionTask, $server);
-					$info[MCS::runQueue]->add(0, $task);
-					$info[MCS::selectionLists][$server]->assign($codeceptionTask);
+					$info[$this::RUN_QUEUE]->add(0, $task);
+					$info[$this::SELECTION_LISTS][$server]->assign($codeceptionTask);
 					echo "$server assign $codeceptionTask\n";
 					$count ++;
 //					echo "added task\n";
 					$globalCount++;
 				}
 
-				$info[MCS::manageQueue]->add(0, $server);
+				$info[$this::MANAGE_QUEUE]->add(0, $server);
 			}
 		}
 //		echo "done filling - added $globalCount tasks\n";
@@ -271,20 +272,20 @@ class MCS
 	 * @param $info
 	 * @return mixed
 	 */
-	private static function run($info)
+	private function run($info)
 	{
 //		echo "start running\n";
 		$globalCount = 0;
 
-		foreach ($info[MCS::clients] as $client => $isAvailable)
+		foreach ($info[$this::CLIENTS] as $client => $isAvailable)
 		{
-			if ($info[MCS::runQueue]->isEmpty()) break;
+			if ($info[$this::RUN_QUEUE]->isEmpty()) break;
 			if ($isAvailable == 1)
 			{
-				$task = $info[MCS::runQueue]->pop();
+				$task = $info[$this::RUN_QUEUE]->pop();
 				$task->run($client);
 				//marks client as not available
-				$info[MCS::clients][$client] = 0;
+				$info[$this::CLIENTS][$client] = 0;
 //				echo "run task ". $task->getTask()." \n";
 				$globalCount++;
 			}
@@ -303,9 +304,9 @@ class MCS
 	 * @param $server
 	 * @param $client
 	 */
-	private static function waitForDbInit($server, $client)
+	private function havingStartNetwork($server, $client)
 	{
-		while (!MCS::isUrlAvailable($server, $client))
+		while (!$this->isUrlAvailable($server, $client))
 		{
 			sleep(1);
 		}
@@ -320,7 +321,7 @@ class MCS
 	 *
 	 * @return bool
 	 */
-	private static function isUrlAvailable($url, $client)
+	private function isUrlAvailable($url, $client)
 	{
 		$command = "docker exec " . $client . " /bin/sh -c \"curl -sL -w \"%{http_code}\\n\" -o /dev/null http://" . $url . "\"";
 
@@ -329,7 +330,7 @@ class MCS
 		return $code == 200;
 	}
 
-	private static function prepareCodeception($path, $file, $server)
+	private function prepareCodeception($path, $file, $server)
 	{
 		$templateFile = "$path/$file";
 		$resultFile = "$path/$server.yml";

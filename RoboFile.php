@@ -27,7 +27,7 @@ use Joomla\Testing\Docker\Container\MySQLContainer;
 use Joomla\Testing\Docker\Container\PHPContainer;
 use Joomla\Testing\Docker\Container\TestContainer;
 use Joomla\Testing\Coordinator\SelectionList;
-use Joomla\Testing\Coordinator\MCS;
+use Joomla\Testing\Coordinator\MainCoordinator;
 use Joomla\Testing\Util\Command;
 use Joomla\Testing\Coordinator\Task;
 
@@ -197,10 +197,15 @@ class RoboFile extends \Robo\Tasks
 		$dockyardPath = $tmpDir . "/dockyard";
 
 		$env = array(
+			//the PHP versions on the Apache servers on which Joomla will run
 			'php' => ['5.4', '5.5', '5.6', '7.0', '7.1'],
+			//the Joomla version that will be loaded on the servers, generating a combination of Joomla and PHP versions
 			'joomla' => ['3.7'],
+			//the number of selenium containers that are used as clients
 			'selenium.no' => 3,
+			//the extension path, this is cloned by default in the below folder by prepareExtension
 			'extension.path' => $tmpDir . '/extension',
+			//the path for the folder where virtualisation stores containers data
 			'host.dockyard' => '.tmp/dockyard',
 		);
 
@@ -209,9 +214,11 @@ class RoboFile extends \Robo\Tasks
 			$this->_mkdir($dockyardPath);
 		}
 
-		MCS::generateEnv($env, $dockyardPath);
-		MCS::prepare($env);
-		MCS::fillAndRun();
+		$mainCoordinator = new MainCoordinator();
+
+		$mainCoordinator->generateEnv($env, $dockyardPath);
+		$mainCoordinator->prepare($env);
+		$mainCoordinator->fillAndRun();
 	}
 
 	/**
@@ -229,10 +236,12 @@ class RoboFile extends \Robo\Tasks
 		//use special codeception config for each environment
 		$command = "docker exec $client /bin/sh -c \"cd /usr/src/tests/tests;vendor/bin/robo run:container-test --debug --config='-c _configs/$server.yml' --test $codeceptionTask --env $server\"";
 
+		$mainCoordinator = new MainCoordinator();
+
 		$result = Command::executeWithOutput($command, 3600);
 		if(strpos($result, "OK") > 0)
 		{
-			MCS::manageTask($codeceptionTask, $server, Task::execute, $client);
+			$mainCoordinator->manageTask($codeceptionTask, $server, Task::EXECUTE, $client);
 		}
 		else
 		{
@@ -245,7 +254,7 @@ class RoboFile extends \Robo\Tasks
 			fwrite($logWriter, $result);
 			fclose($logWriter);
 
-			MCS::manageTask($codeceptionTask, $server, Task::fail, $client);
+			$mainCoordinator->manageTask($codeceptionTask, $server, Task::FAIL, $client);
 		}
 	}
 

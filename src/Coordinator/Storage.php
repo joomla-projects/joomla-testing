@@ -1,9 +1,10 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: isac
- * Date: 04/08/2017
- * Time: 4:03 PM
+ * @package     Joomla\Testing
+ * @subpackage  Coordinator
+ *
+ * @copyright   Copyright (C) 2005 - 2016 Open Source Matters, Inc. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
 
 namespace Joomla\Testing\Coordinator;
@@ -41,15 +42,15 @@ class Storage
 		$this->aquireLock();
 
 		//mark task flag
-		$selectionLists = unserialize($this->memcached->get(MCS::selectionLists));
+		$selectionLists = unserialize($this->memcached->get(MainCoordinator::SELECTION_LISTS));
 		$selectionLists[$server]->$action($codeceptionTask);
-		$this->memcached->set(MCS::selectionLists, serialize($selectionLists));
+		$this->memcached->set(MainCoordinator::SELECTION_LISTS, serialize($selectionLists));
 
 		//unlock client for next execution if task is failed or executed
 		if (!is_null($client)){
-			$clients = unserialize($this->memcached->get(MCS::clients));
+			$clients = unserialize($this->memcached->get(MainCoordinator::CLIENTS));
 			$clients[$client] = 1;
-			$this->memcached->set(MCS::clients, serialize($clients));
+			$this->memcached->set(MainCoordinator::CLIENTS, serialize($clients));
 		}
 
 		$this->unlockCache();
@@ -64,13 +65,13 @@ class Storage
 	{
 		$this->aquireLock();
 
-		$info[MCS::selectionLists] 	= unserialize($this->memcached->get(MCS::selectionLists));
-		$info[MCS::clients] 		= unserialize($this->memcached->get(MCS::clients));
-		$info[MCS::servers] 		= unserialize($this->memcached->get(MCS::servers));
-		$info[MCS::runQueue] 		= unserialize($this->memcached->get(MCS::runQueue));
-		$info[MCS::manageQueue] 	= unserialize($this->memcached->get(MCS::manageQueue));
-		$info[MCS::serversNo] 		= unserialize($this->memcached->get(MCS::serversNo));
-		$info[MCS::clientsNo] 		= unserialize($this->memcached->get(MCS::clientsNo));
+		$info[MainCoordinator::SELECTION_LISTS] 	= unserialize($this->memcached->get(MainCoordinator::SELECTION_LISTS));
+		$info[MainCoordinator::CLIENTS] 		= unserialize($this->memcached->get(MainCoordinator::CLIENTS));
+		$info[MainCoordinator::SERVERS] 		= unserialize($this->memcached->get(MainCoordinator::SERVERS));
+		$info[MainCoordinator::RUN_QUEUE] 		= unserialize($this->memcached->get(MainCoordinator::RUN_QUEUE));
+		$info[MainCoordinator::MANAGE_QUEUE] 	= unserialize($this->memcached->get(MainCoordinator::MANAGE_QUEUE));
+		$info[MainCoordinator::SERVERS_NO] 		= unserialize($this->memcached->get(MainCoordinator::SERVERS_NO));
+		$info[MainCoordinator::CLIENTS_NO] 		= unserialize($this->memcached->get(MainCoordinator::CLIENTS_NO));
 
 		return $info;
 	}
@@ -106,7 +107,7 @@ class Storage
 	 */
 	private function lockCache()
 	{
-		$this->memcached->set(MCS::available, 0);
+		$this->memcached->set(MainCoordinator::AVAILABLE, 0);
 //		echo "memcached locked\n";
 	}
 
@@ -115,7 +116,7 @@ class Storage
 	 */
 	private function unlockCache()
 	{
-		$this->memcached->set(MCS::available, 1);
+		$this->memcached->set(MainCoordinator::AVAILABLE, 1);
 //		echo "memcached unlocked\n";
 	}
 
@@ -124,7 +125,7 @@ class Storage
 	 */
 	private function isCacheAvailable()
 	{
-		return $this->memcached->get(MCS::available);
+		return $this->memcached->get(MainCoordinator::AVAILABLE);
 	}
 
 }
