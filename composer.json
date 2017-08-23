@@ -14,14 +14,14 @@
   ],
   "autoload": {
     "psr-4": {
-      "Joomla\\Testing\\": "src/",
-      "Joomla\\Virtualisation\\" : "../virtualisation/src/"
+      "Joomla\\Testing\\": "src/"
     }
   },
   "require-dev": {
     "consolidation/robo": "~1",
     "symfony/process": "~3",
     "symfony/yaml": "^3.2",
-    "joomla-projects/joomla-testing-robo"  : "dev-container-test"
+    "joomla-projects/joomla-testing-robo"  : "dev-container-test",
+    "joomla-projects/virtualisation"  : "dev-container-test"
   }
 }

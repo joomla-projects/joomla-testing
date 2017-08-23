@@ -191,7 +191,6 @@ class RoboFile extends \Robo\Tasks
 	public function runCoordinator($repoOwner, $repoName, $repoBranch)
 	{
 		$this->prepareExtension($repoOwner, $repoName, $repoBranch);
-		exec("echo start >" .JPATH_BASE. "/coordinator.log");
 
 		$tmpDir = __DIR__ . '/.tmp';
 		$dockyardPath = $tmpDir . "/dockyard";
@@ -217,6 +216,8 @@ class RoboFile extends \Robo\Tasks
 		$mainCoordinator = new MainCoordinator();
 
 		$mainCoordinator->generateEnv($env, $dockyardPath);
+		exec("echo start >" .JPATH_BASE. "/coordinator.log");
+//
 		$mainCoordinator->prepare($env);
 		$mainCoordinator->fillAndRun();
 	}
