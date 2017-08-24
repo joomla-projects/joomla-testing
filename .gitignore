@@ -47,3 +47,4 @@ vendor/*
 
 # Temporary data
 /.tmp
+coordinator.log

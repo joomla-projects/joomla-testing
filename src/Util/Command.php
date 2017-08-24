@@ -19,7 +19,7 @@ use Symfony\Component\Process\Process;
 abstract class Command
 {
 	/**
-	 * Executes a command and returns its output
+	 * Executes a command and returns its success
 	 *
 	 * @param   string  $command  OS command to execute
 	 * @param   int     $timeout  Timeout for the command to execute
@@ -34,5 +34,23 @@ abstract class Command
 		$process->run();
 
 		return $process->isSuccessful();
+	}
+
+	/**
+	 * Executes a command and returns its output
+	 *
+	 * @param   string  $command  OS command to execute
+	 * @param   int     $timeout  Timeout for the command to execute
+	 *
+	 * @return string
+	 *
+	 * @since 1.0.0
+	 */
+	public static function executeWithOutput($command, $timeout = 600)
+	{
+		$process = new Process($command, null, null, null, $timeout);
+		$process->run();
+
+		return $process->getOutput();
 	}
 }

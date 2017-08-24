@@ -16,10 +16,20 @@
 
 require __DIR__ . '/vendor/autoload.php';
 
+if (!defined('JPATH_BASE'))
+{
+	// Base path for Robo tasks
+	define('JPATH_BASE', __DIR__);
+}
+
 use Joomla\Testing\Docker\Network\Network;
 use Joomla\Testing\Docker\Container\MySQLContainer;
 use Joomla\Testing\Docker\Container\PHPContainer;
 use Joomla\Testing\Docker\Container\TestContainer;
+use Joomla\Testing\Coordinator\SelectionList;
+use Joomla\Testing\Coordinator\MainCoordinator;
+use Joomla\Testing\Util\Command;
+use Joomla\Testing\Coordinator\Task;
 
 /**
  * Class RoboFile
@@ -126,6 +136,142 @@ class RoboFile extends \Robo\Tasks
 	 */
 	public function runTests($repoOwner, $repoName, $repoBranch)
 	{
+		$this->prepareExtension($repoOwner, $repoName, $repoBranch);
+
+		$tmpDir = __DIR__ . '/.tmp';
+
+		// Docker network (assuming it's started)
+		$dockerNetwork = new Network('joomla');
+
+		$dockerTesting = new TestContainer;
+		$dockerTesting->set('name', 'client');
+		$dockerTesting->set('network', $dockerNetwork);
+		$dockerTesting->set(
+			'ports', array(
+				'5901' => '5900'
+			)
+		);
+		$dockerTesting->set(
+			'volumes', array(
+				$tmpDir . '/extension' => '/usr/src/tests'
+			)
+		);
+		$dockerTesting->pull();
+		$dockerTesting->run();
+
+		return 0;
+	}
+
+	/**
+	 * manual test for the SelectionList
+	 *
+	 * @param $ymlPath
+	 */
+	public function loadTests($ymlPath)
+	{
+		$selectionList = new SelectionList($ymlPath);
+		$task = $selectionList->pop();
+		$selectionList->execute($task);
+		for($i=0; $i<5; $i++){
+			$task = $selectionList->pop();
+		}
+		$selectionList->fail($task);
+		var_dump($selectionList->getList());
+	}
+
+	/**
+	 * runs the tests for the servers defined in the below $env
+	 * tests are run in parallel with the use of the MainCoordinator(MCS)
+	 * environment is started by the use of the virtualisation package
+	 *
+	 * @param $repoOwner
+	 * @param $repoName
+	 * @param $repoBranch
+	 */
+	public function runCoordinator($repoOwner, $repoName, $repoBranch)
+	{
+		$this->prepareExtension($repoOwner, $repoName, $repoBranch);
+
+		$tmpDir = __DIR__ . '/.tmp';
+		$dockyardPath = $tmpDir . "/dockyard";
+
+		$env = array(
+			//the PHP versions on the Apache servers on which Joomla will run
+			'php' => ['5.4', '5.5', '5.6', '7.0', '7.1'],
+			//the Joomla version that will be loaded on the servers, generating a combination of Joomla and PHP versions
+			'joomla' => ['3.7'],
+			//the number of selenium containers that are used as clients
+			'selenium.no' => 3,
+			//the extension path, this is cloned by default in the below folder by prepareExtension
+			'extension.path' => $tmpDir . '/extension',
+			//the path for the folder where virtualisation stores containers data
+			'host.dockyard' => '.tmp/dockyard',
+		);
+
+		if (!file_exists($dockyardPath))
+		{
+			$this->_mkdir($dockyardPath);
+		}
+
+		$mainCoordinator = new MainCoordinator();
+
+		$mainCoordinator->generateEnv($env, $dockyardPath);
+		exec("echo start >" .JPATH_BASE. "/coordinator.log");
+//
+		$mainCoordinator->prepare($env);
+		$mainCoordinator->fillAndRun();
+	}
+
+	/**
+	 * runs a specific task on a specific server using a specific client
+	 * manages the task after completion
+	 *
+	 * @param $codeceptionTask
+	 * @param $server
+	 * @param $client
+	 */
+	public function runClientTask($codeceptionTask, $server, $client)
+	{
+		//synchronous
+		//use separate environment for each $server in order to avoid acceptance.suite.yml override
+		//use special codeception config for each environment
+		$command = "docker exec $client /bin/sh -c \"cd /usr/src/tests/tests;vendor/bin/robo run:container-test --debug --config='-c _configs/$server.yml' --test $codeceptionTask --env $server\"";
+
+		$mainCoordinator = new MainCoordinator();
+
+		$result = Command::executeWithOutput($command, 3600);
+		if(strpos($result, "OK") > 0)
+		{
+			$mainCoordinator->manageTask($codeceptionTask, $server, Task::EXECUTE, $client);
+		}
+		else
+		{
+			$tmp = explode('/', $codeceptionTask);
+			$outputDir = __DIR__ . '/.tmp/extension/tests/_output/' . $server;
+			$outputFile = preg_replace("/php:/", "", end($tmp)) . ".fail.log";
+			$outputLog = "$outputDir/$outputFile";
+
+			$logWriter = fopen($outputLog, "w") or die("Unable to open file!");
+			fwrite($logWriter, $result);
+			fclose($logWriter);
+
+			$mainCoordinator->manageTask($codeceptionTask, $server, Task::FAIL, $client);
+		}
+	}
+
+	/**
+	 * prepares the extension for testing:
+	 * 1. clones the repo
+	 * 2. runs composer install
+	 * 3. runs Container Test Preparation
+	 *
+	 * @param $repoOwner
+	 * @param $repoName
+	 * @param $repoBranch
+	 * @return int
+	 */
+	public function prepareExtension($repoOwner, $repoName, $repoBranch)
+	{
 		if (empty($repoOwner) || empty($repoName))
 		{
 			$this->say('Please specify repository owner and name (Github based)');
@@ -163,25 +309,8 @@ class RoboFile extends \Robo\Tasks
 			->preferDist()
 			->run();
 
-		// Docker network (assuming it's started)
-		$dockerNetwork = new Network('joomla');
-
-		$dockerTesting = new TestContainer;
-		$dockerTesting->set('name', 'client');
-		$dockerTesting->set('network', $dockerNetwork);
-		$dockerTesting->set(
-			'ports', array(
-				'5901' => '5900'
-			)
-		);
-		$dockerTesting->set(
-			'volumes', array(
-				$tmpDir . '/extension' => '/usr/src/tests'
-			)
-		);
-		$dockerTesting->pull();
-		$dockerTesting->run();
-
-		return 0;
+		// Prepare the testing package
+		$command = "cd " . JPATH_BASE . "/.tmp/extension/tests;vendor/bin/robo run:container-test-preparation >" .JPATH_BASE. "/coordinator.log 2>&1 &";
+		Command::execute($command);
 	}
 }
