@@ -1,3 +1,5 @@
+NOTE - This repository has been archived for now.
+
 ## GSOC 2017 Parallel Testing Project
 
 ### Summary
